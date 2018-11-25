@@ -14,7 +14,8 @@
 	"contributors": [{
 		"name": "yobailover"
 	}, {
-		"name": "vide0"
+		"name": "vide0",
+		"email": "vide0-helper@gmx.com"
 	}],
 	"license": "GPL-3.0",
 	"keywords": [
