@@ -1,0 +1,13 @@
+{
+	"cSpell.words": [
+		"Heydouga",
+		"avgle",
+		"heyzo",
+		"musume"
+	],
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"extension/dist/**": true
+	}
+}

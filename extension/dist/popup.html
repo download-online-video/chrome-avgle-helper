@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<meta name="renderer" content="webkit" />
+		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0" />
+		<title>Avgle Helper Console</title>
+		<style>
+			html { margin: 0; padding: 0; }
+			body {
+				width: 680px; height: 300px;
+				margin: 0; padding: 5px;
+				background: #002F38;
+				font-family: monospace;
+				font-size: 14px;
+			}
+			#clear {
+				position: absolute;
+				right: 15px;
+				bottom: 5px;
+				color: #B78728;
+				text-decoration: underline;
+				cursor: pointer;
+			}
+			#container {
+				width: 100%; height: 280px;
+				overflow-y: scroll;
+				word-break: break-all;
+				background: #002F38;
+			}
+			#container .info { color: #839728; }
+			#container .info a { color: #839728; }
+			#container .muted { color: #637A81; }
+			#container .muted a { color: #637A81; }
+			#container .error { color: #E23139; }
+			#container .error a { color: #E23139; }
+			#container::-webkit-scrollbar { width: 5px; }
+			#container::-webkit-scrollbar-track { background: #003943; }
+			#container::-webkit-scrollbar-thumb { background: #91A09F; }
+
+			.prefix { color: #91A09F; margin-right: 5px; }
+		</style>
+	</head>
+	<body>
+		<div id="container">
+			<!-- <div class="error"><span class="prefix">2017-03-05</span> helloworld </div>
+			<div class="info"><span class="prefix">2017-03-05</span> helloworld </div>
+			<div class="muted"><span class="prefix">2017-03-05</span> helloworld </div> -->
+		</div>
+		<div id="clear">clear</div>
+		<script src="popup.js"></script>
+	</body>
+</html>

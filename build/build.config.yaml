@@ -1,0 +1,32 @@
+name: Chrome avgle helper
+src:
+    base: src
+    assets: []
+    pages:
+        - "popup.html"
+    scripts:
+        - "index.js"
+        - "inject_to_normal.js"
+        - "popup.js"
+    styles:
+dist:
+    base: extension/dist
+    clean: true
+
+watch:
+    - "src"
+
+processor:
+    source_map:
+        enable: true
+        js: true
+        css: false
+    babel:
+        enable: true
+        babelrc: .babelrc
+    browserify:
+        transform:
+            - name: "babelify"
+              options:
+                plugins:
+                    - "transform-es2015-modules-commonjs"

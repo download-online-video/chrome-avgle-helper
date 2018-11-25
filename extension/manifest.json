@@ -1,0 +1,29 @@
+{
+	"manifest_version": 2,
+	"name": "Avgle Helper",
+	"version": "1.5.0",
+	"description": "A Chrome extension",
+	"background": {
+		"scripts": ["dist/index.js"],
+		"persistent": true
+	},
+	"browser_action": {
+		"default_icon": "icons/128.png",
+		"default_popup": "dist/popup.html"
+	},
+	"content_scripts": [{
+		"matches": ["*://avgle.com/*"],
+		"run_at": "document_end",
+		"all_frames": false,
+		"js": ["dist/inject_to_normal.js"]
+	}],
+	"icons": {
+		"128": "icons/128.png"
+	},
+	"permissions": [
+		"tabs",
+		"notifications",
+		"webRequest",
+		"*://*/*"
+	]
+}

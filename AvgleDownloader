@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+
+#
+# Usage: AvgleDownloader <video-name> <m3u8-url-base64>
+#
+
+# Add this referer for fix forbidden download action on CDN
+HTTP_REFERER="https://avgle.com"
+# enable referer header by default, but it will be turn off (false) after download first file failed.
+ENABLE_REFERER=true
+
+# The idea why add user-agent header is from fork repository by [mywarr](https://github.com/mywarr)
+# And the following User-Agent is reference from: (Last updated: Tue, 12 Jun 2018 18:38:12 +0000)
+# https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
+HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+
+# wget/aria2c binary file
+# it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
+WGET_BIN="wget";
+ARIA2C_BIN="aria2c";
+DOWNLOADER_TYPE="wget"; # or aria2c
+
+DOWNLOAD_LOG="avgle-download.log";
+
+#================================
+#====   Colorized variables  ====
+if [[ -t 1 ]]; then # is terminal?
+	COLOR_MODE=`tput colors`;
+	if [[ -n "$COLOR_MODE" ]] && [[ "$COLOR_MODE" -ge 8 ]]; then
+		BOLD="\x1b[1m";
+		DIM="\x1b[2m";
+		RESET="\x1b[0m";
+
+		RED="\x1b[0;31m";
+		RED_BOLD="\x1b[1;31m";
+		YELLOW_BOLD="\x1b[1;33m";
+		GREEN="\x1b[0;32m";
+		GREEN_BOLD="\x1b[1;32m";
+		BLUE="\x1b[0;34m";
+		BLUE_BOLD="\x1b[1;34m";
+		CYAN_BOLD="\x1b[1;36m";
+		GREY="\x1b[37m";
+	fi
+fi
+#================================
+#====   Basic functions  ========
+function confirm() {
+	local yn;
+	while true; do read -p "Confirm (y/n) > " yn
+		case $yn in
+			Y|Yes|YES|yes|y) return 0 ;;
+			N|No|NO|no|n) return 1 ;;
+		esac
+	done
+}
+function title() { echo -e "${BLUE_BOLD}# $1 ${RESET}"; }
+function finish() { echo -e "\n${GREEN_BOLD}# Finish!${RESET}\n"; exit 0; }
+function user_abort() { echo -e "\n${YELLOW_BOLD}# Abort by user!${RESET}\n"; exit 0; }
+function warn() { echo -e "${YELLOW_BOLD} warning: ${1} ${RESET}"; }
+function success() { echo -e "${GREEN} success: ${1} ${RESET}"; }
+function error() { echo -e "${RED_BOLD}  error: ${RED}$1${RESET}\n"; exit 1; }
+
+#===================================
+#=======  Network functions  =======
+
+function _download() {
+	if [[ "$DOWNLOADER_TYPE" == aria2c ]]; then
+		[[ -f "$DOWNLOAD_LOG" ]] && rm "$DOWNLOAD_LOG";
+
+		[[ "$1" == with_referer ]] && referer="--referer=$HTTP_REFERER";
+		gawk -vout_name="$3" '{
+			if (NF==1 && out_name) {
+				print $1;
+				print "  out=" out_name;
+			} else {
+				for (i=1;i<=NF;i++) {
+					print $i;
+					out_name = $i;
+					gsub(/^.*\//, "", out_name);
+					print "  out=" out_name;
+				}
+			}
+		}' <<< "$2" |
+			"$ARIA2C_BIN" "$referer" --user-agent="$HTTP_USER_AGENT" \
+				--show-files --continue=true \
+				--input-file=- \
+				--log="$DOWNLOAD_LOG" --log-level=info;
+	else
+		if [[ "$1" == with_referer ]]; then ref1="--header"; ref2="Referer: $HTTP_REFERER"; fi
+		if [[ -n "$3" ]]; then  out1="-O"; out2="$3"; fi
+		"$WGET_BIN" "$ref1" "$ref2" --header "User-Agent: $HTTP_USER_AGENT" "$out1" "$out2" $2;
+	fi
+}
+
+# $1: description
+# $2: url
+# $3: [Optional] target file
+function better_wget() {
+	local download_ok=true;
+
+	if [[ $ENABLE_REFERER == true ]]; then
+		_download with_referer "$2" "$3" || download_ok=false;
+
+		if [[ $download_ok != true ]]; then
+			# has download log but there has no mark of 403, just exit
+			if [[ -f "$DOWNLOAD_LOG" ]] && [[ -z "$(grep -e "HTTP/1.1 403 Forbidden" "$DOWNLOAD_LOG")" ]]; then
+				error "Could not download $1 (log: $DOWNLOAD_LOG)";
+			fi
+			warn "execute wget with 'Referer' header failed! (trying to execute again without 'Referer' header)";
+			ENABLE_REFERER=false;
+			_download no_referer "$2" "$3" || error "Could not download $1";
+		fi
+	else
+		_download no_referer "$2" "$3" || error "Could not download $1 (log: $DOWNLOAD_LOG)";
+	fi
+}
+
+
+DIV_LINE="===========================================================";
+echo -e "\n${DIV_LINE}"
+echo -e '     _             _      '
+echo -e '    / \__   ____ _| | ___ '
+echo -e '   / _ \ \ / / _` | |/ _ \'
+echo -e '  / ___ \ V / (_| | |  __/'
+echo -e ' /_/   \_\_/ \__, |_|\___|'
+echo -e '  ____       |___/          _                 _           '
+echo -e ' |  _ \  _____      ___ __ | | ___   __ _  __| | ___ _ __ '
+echo -e ' | | | |/ _ \ \ /\ / / '\''_ \| |/ _ \ / _` |/ _` |/ _ \ '\''__|'
+echo -e ' | |_| | (_) \ V  V /| | | | | (_) | (_| | (_| |  __/ |   '
+echo -e ' |____/ \___/ \_/\_/ |_| |_|_|\___/ \__,_|\__,_|\___|_|   '
+echo -e ''
+echo -e '            Update date: 2018-11-25'
+echo -e ''
+echo -e "${BOLD} Usage: AvgleDownloader <video-name> <m3u8-url-base64>${RESET}"
+echo -e ''
+echo -e "${DIV_LINE}\n"
+
+# ===========================
+# Windows User
+WIN_USER=false
+UNAME_S="$(uname -s)";
+if [[ "$UNAME_S" == MINGW* ]] || [[ "$UNAME_S" == CYGWIN* ]]; then
+	WIN_USER=true;
+fi
+
+# ===========================
+# 1. Checking dependencies
+# 2. Searching and binding downloader: wget or aria2c
+
+# Find a executable binary file
+# Usage:  search_exec_file <exec_name> [required] [package-name]
+exec_file_result=""
+function search_exec_file() {
+	local SCRIPT_DIR FIND_RESULT;
+
+	exec_file_result="$(which "$1" 2>/dev/null)";
+	[[ -n "$exec_file_result" ]] && return 0;
+
+	if [[ $WIN_USER == true ]]; then
+		SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)";
+
+		pushd "$SCRIPT_DIR" > /dev/null || error "goto script directory failed!";
+		FIND_RESULT="$(find windows-libs -type f -iname "$1.exe" | head -n1)";
+		if [[ -z "$FIND_RESULT" ]]; then
+			if [[ "$2" == required ]]; then
+				FIX_IT="(How to fix this error: read windows-libs/README.md)"
+				error "$1 is missng in directory \"windows-libs\". $FIX_IT";
+			else
+				return 1;
+			fi
+		fi
+		exec_file_result="${SCRIPT_DIR}/${FIND_RESULT}";
+		popd > /dev/null;
+		return 0;
+	fi
+	if [[ "$2" == required ]]; then
+		error "\"$1\" is missing! (You can exec \"sudo apt install $3\" to fix it on Ubuntu)";
+	else
+		return 1;
+	fi
+}
+function bind_downloader() {
+	if search_exec_file "$ARIA2C_BIN" optional; then
+		ARIA2C_BIN="$exec_file_result";
+		DOWNLOADER_TYPE="aria2c";
+		echo -e "${CYAN_BOLD}Experimental improvement: use \"aria2c\" instead of \"wget\"";
+		echo -e "      🚀  use aria2c will be faster than wget 🚀${RESET}"
+
+	elif search_exec_file "$WGET_BIN" required "$WGET_BIN"; then
+		WGET_BIN="$exec_file_result";
+		DOWNLOADER_TYPE="wget";
+
+	fi
+}
+
+[[ -z `which gawk` ]] && error "\"gawk\" is missing! (Ubuntu: sudo apt install gawk)";
+bind_downloader;
+
+# ===========================
+# Checking arguments
+[[ -z "$1" ]] && error "usage: AvgleDownloader <video-name> <m3u8-url-base64>";
+[[ -z "$2" ]] && error "usage: AvgleDownloader <video-name> <m3u8-url-base64>";
+
+VIDEO_NAME="$1";
+M3U8_URL_BASE64="$2";
+echo -e "${GREY}Video name:${DIM} ${VIDEO_NAME}${RESET}";
+echo -e "${GREY}M3U8 URL Base64:${DIM} ${M3U8_URL_BASE64}${RESET}";
+
+echo "$M3U8_URL_BASE64" | base64 --decode >/dev/null || error "input m3u8 url is invalid!";
+
+M3U8_URL=`echo "$M3U8_URL_BASE64" | base64 --decode`
+echo -e "${GREY}M3U8 URL:${DIM} ${M3U8_URL}${RESET}";
+
+M3U8_FILE="${VIDEO_NAME}.m3u8"
+if [[ -f "$M3U8_FILE" ]]; then
+	if [[ ! -s "$M3U8_FILE" ]]; then # clean invalid m3u8
+		rm "$M3U8_FILE" || error "could not delete invalid m3u8 file";
+		warn "deleted invalid m3u8 file \"$M3U8_FILE\"";
+	fi
+fi
+
+if [[ ! -f "${M3U8_FILE}" ]]; then
+	title "downloading m3u8 file ...";
+	better_wget 'm3u8 file' "$M3U8_URL" "$M3U8_FILE";
+	success "downloaded m3u8 file to \"$M3U8_FILE\"";
+fi
+
+# get total file count:
+function getLastVideoFragment() { cat "$M3U8_FILE" | gawk '!/^#/ {print $0}' | tail -n1; }
+LAST_FRAGMENT_URL=`getLastVideoFragment`;
+
+LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}";
+LAST_FRAGMENT_ID="${LAST_FRAGMENT##seg-}";
+LAST_FRAGMENT_ID="${LAST_FRAGMENT_ID%%-*}";
+echo -e "${GREY}Total fragments:${DIM} ${LAST_FRAGMENT_ID} (${LAST_FRAGMENT})${RESET}";
+
+[[ -z "$LAST_FRAGMENT_ID" ]] && error "could not get last video fragment id from m3u8 file!";
+
+DOWNLOAD_URL_PREFIX="${LAST_FRAGMENT_URL%/*}";
+
+title "downloading missing files ...";
+
+MISSING_FILE="";
+MISSING_FILE_COUNT=0;
+for (( i=1 ; i<=$LAST_FRAGMENT_ID ; i++ )); do
+	DOWNLOAD_TO="seg-${i}-v1-a1.ts"
+	if [[ -e "${DOWNLOAD_TO}" ]]; then
+		# there has aria2 continue download mark file
+		if [[ ! -e "${DOWNLOAD_TO}.aria2" ]] || [[ "$DOWNLOADER_TYPE" != aria2c ]]; then
+			SIZE=$(stat --printf="%s" "${DOWNLOAD_TO}");
+			if [[ $SIZE -lt 10240 ]]; then # less than 10k (is broken or download failed)
+				rm "${DOWNLOAD_TO}" || error "could not delete broken file \"${DOWNLOAD_TO}\"";
+				warn "cleaned broken downloaded file: \"${DOWNLOAD_TO}\"";
+			else
+				continue;
+			fi
+		fi
+	fi
+	MISSING_FILE="${MISSING_FILE}${i}\n";
+	MISSING_FILE_COUNT=$((MISSING_FILE_COUNT+1));
+	# echo -e "  downloading: ${BOLD}${i}/${LAST_FRAGMENT_ID}${RESET}";
+done
+
+if [[ "$MISSING_FILE_COUNT" == "0" ]]; then
+	success "all files have been downloaded!";
+	finish;
+fi
+
+function get_better_file_list() {
+	echo -e "$1" | gawk '
+	function printRange() {
+		if(i!=from) print "{" from ".." i "}";
+		else print from;
+	}
+	BEGIN { i=-1; from=-1; }
+	!/^\s*$/ { # ignore empty line
+		if($1!=i+1) {
+			if(from!=-1) printRange();
+			from=$1; i=$1; # reset
+		} else {
+			i=$1;
+			if(i-from==49) { # max step is 50: 50-1=49
+				printRange();
+				from=-1; i=-1;
+			}
+		}
+	}
+	END { if(from>0) printRange(); }'
+}
+
+get_better_file_list "$MISSING_FILE" | while read range; do
+
+	DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}/seg-${range}-v1-a1.ts";
+	DOWNLOAD_URL=$(eval "echo $DOWNLOAD_URL");
+
+	title "downloading ${range}/${LAST_FRAGMENT_ID} ...";
+	better_wget "\"seg-${range}-v1-a1.ts\", please try again!" "$DOWNLOAD_URL";
+	success "progress ${range}/${LAST_FRAGMENT_ID}";
+
+done || exit 1;
+
+finish;
