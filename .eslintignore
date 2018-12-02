@@ -1,0 +1,7 @@
+# extnesion builder directory
+# 插件构建工具所在目录
+build
+
+# extnesion distributed files
+# 打包后的插件代码
+extension/dist

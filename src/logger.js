@@ -33,7 +33,7 @@ let escapeMap = {
 	'`': '&#x60;',
 	'=': '&#x3D;'
 };
-let escape = text => text.replace(/[&<>"'`=\/]/g, matched => escapeMap[matched]);
+let escape = text => text.replace(/[&<>"'`=/]/g, matched => escapeMap[matched]);
 
 export function bindLogCallback(callback) { logCallback = callback; }
 export function unbindLogCallback() { logCallback = undefined; }
