@@ -11,12 +11,19 @@
 		"test": "bash ./test/index.sh"
 	},
 	"author": "OldDriver",
-	"contributors": [{
-		"name": "yobailover"
-	}, {
-		"name": "vide0",
-		"email": "vide0-helper@gmx.com"
-	}],
+	"contributors": [
+		{
+			"name": "yobailover"
+		},
+		{
+			"name": "vide0",
+			"email": "vide0-helper@gmx.com"
+		}
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/download-online-video/chrome-avgle-helper"
+	},
 	"license": "GPL-3.0",
 	"keywords": [
 		"avgle",
