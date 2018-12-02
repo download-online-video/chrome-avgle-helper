@@ -1,5 +1,7 @@
 # Chrome Avgle Helper
 
+[![Build Status](https://travis-ci.org/download-online-video/chrome-avgle-helper.svg?branch=master)](https://travis-ci.org/download-online-video/chrome-avgle-helper)
+
 A Chrome extension for a free community  一个给司机用的Chrome插件
 
 ## Notice 注意
@@ -43,10 +45,13 @@ brew install aria2 # OS X
 	1. Download video follow command on the online player page by script `AvgleDownloader`
 	2. Combine video files by script `Avgle`
 
-## TODO
+## Contributing 贡献/修改代码
 
-- [ ] Support more websites
+If you are interested in fixing issues and improving codes to this repository, you can get references from these places:
 
-## License
+- [Chrome extension documents](https://developer.chrome.com/extensions/devguide)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## License 开源协议
 
 Sources are licensed under the [GPL-3.0 License](LICENSE).
