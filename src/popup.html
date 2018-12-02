@@ -9,7 +9,7 @@
 		<style>
 			html { margin: 0; padding: 0; }
 			body {
-				width: 680px; height: 300px;
+				/* width: 680px; height: 300px; */
 				margin: 0; padding: 5px;
 				background: #002F38;
 				font-family: monospace;
@@ -24,11 +24,13 @@
 				cursor: pointer;
 			}
 			#container {
-				width: 100%; height: 280px;
+				width: 100%; height: calc(100vh - 10px);
 				overflow-y: scroll;
 				word-break: break-all;
 				background: #002F38;
 			}
+			#container .item { display: flex; flex-direction: row; }
+
 			#container .info { color: #839728; }
 			#container .info a { color: #839728; }
 			#container .muted { color: #637A81; }
@@ -39,7 +41,11 @@
 			#container::-webkit-scrollbar-track { background: #003943; }
 			#container::-webkit-scrollbar-thumb { background: #91A09F; }
 
-			.prefix { color: #91A09F; margin-right: 5px; }
+			#container .item .prefix {
+				color: #91A09F;
+				margin-right: 10px;
+				flex-shrink: 0;
+			}
 		</style>
 	</head>
 	<body>

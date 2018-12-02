@@ -31,9 +31,10 @@ let escapeMap = {
 	"'": '&#39;',
 	'/': '&#x2F;',
 	'`': '&#x60;',
-	'=': '&#x3D;'
+	'=': '&#x3D;',
+	' ': '&nbsp',
 };
-let escape = text => text.replace(/[&<>"'`=/]/g, matched => escapeMap[matched]);
+let escape = text => text.replace(/[&<>"'`=/ ]/g, matched => escapeMap[matched]);
 
 export function bindLogCallback(callback) { logCallback = callback; }
 export function unbindLogCallback() { logCallback = undefined; }
@@ -45,10 +46,12 @@ function logItem2html(item) {
 	let d = new Date(item.t);
 	let part = item.c.split(/(https?:\/\/\S+)/).map(ctx => ctx.match(/^https?:\/\//)
 		? `<a href="${encodeURI(ctx)}" target="_blank">${escape(decodeURI(ctx))}</a>`
-		: escape(ctx));
-	return `<div class="${item.type}">
-		<span class="prefix">${escape(d.toLocaleDateString() + " " + d.toLocaleTimeString())}</span>
-		${part.join('')}
+		: escape(ctx).replace(/\n/g, '<br />'));
+	return `<div class="item">
+		<div class="prefix">${escape(d.toLocaleDateString() + " " + d.toLocaleTimeString())}</div>
+		<div class="${item.type}">
+			${part.join('')}
+		</div>
 	</div>`;
 }
 

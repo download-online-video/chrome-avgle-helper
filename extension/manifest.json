@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Avgle Helper",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"description": "A Chrome extension",
 	"background": {
 		"scripts": ["dist/index.js"],
@@ -9,7 +9,7 @@
 	},
 	"browser_action": {
 		"default_icon": "icons/128.png",
-		"default_popup": "dist/popup.html"
+		"default_title": "Open console for Avgle helper"
 	},
 	"content_scripts": [{
 		"matches": ["*://avgle.com/*"],

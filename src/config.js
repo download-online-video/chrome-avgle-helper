@@ -3,9 +3,14 @@
  * 用于拦截视频列表 m3u8 文件请求的 URL Pattern 数组
  */
 export const M3U8_PATTERN_ARRAY = [
-	'*://*.ahcdn.com/*.m3u8',
-	'*://*.cdn.qooqlevideo.com/*.m3u8'
+	'*://*/*.m3u8',
+	'*://*/*.m3u8?*',
 ];
+
+export const PROCESSABLE_M3U8_PATTERN = [
+	{pattern: /\.adcdn\.com\//},
+	{pattern: /\.cdn\.qooqlevideo\.com\//},
+]
 
 /**
  * URL pattern of Avgle video player page
