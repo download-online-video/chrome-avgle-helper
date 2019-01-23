@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
-#
-# Usage: AvgleDownloader <video-name> <m3u8-url-base64>
-#
+# How to use:
+USAGE="Usage: AvgleDownloader [option=value ...]";
+OPTIONS='Options:'\
+'  name=${video_name}'\
+'  url=${m3u8_url}'\
+'  decode=<true|false>'\
+'  j=${max_concurrent_downloads} # aria2c only';
 
 # Add this referer for fix forbidden download action on CDN
 HTTP_REFERER="https://avgle.com"
@@ -18,8 +22,9 @@ HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K
 # it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
 WGET_BIN="wget";
 ARIA2C_BIN="aria2c";
-DOWNLOADER_TYPE="wget"; # or aria2c
+DOWNLOADER_TYPE="wget"; # or "aria2c"
 
+ARIA2C_OPT_J=""; # https://aria2.github.io/manual/en/html/aria2c.html#cmdoption-j
 DOWNLOAD_LOG="avgle-download.log";
 
 #================================
@@ -68,6 +73,10 @@ function _download() {
 		[[ -f "$DOWNLOAD_LOG" ]] && rm "$DOWNLOAD_LOG";
 
 		[[ "$1" == with_referer ]] && referer="--referer=$HTTP_REFERER";
+
+		# generate aria2c download list file by gawk
+		# Syntax of download list:
+		# https://aria2.github.io/manual/en/html/aria2c.html#id2
 		gawk -vout_name="$3" '{
 			if (NF==1 && out_name) {
 				print $1;
@@ -84,6 +93,7 @@ function _download() {
 			"$ARIA2C_BIN" "$referer" --user-agent="$HTTP_USER_AGENT" \
 				--show-files --continue=true \
 				--input-file=- \
+				"$ARIA2C_OPT_J" \
 				--log="$DOWNLOAD_LOG" --log-level=info;
 	else
 		if [[ "$1" == with_referer ]]; then ref1="--header"; ref2="Referer: $HTTP_REFERER"; fi
@@ -129,9 +139,9 @@ echo -e ' | | | |/ _ \ \ /\ / / '\''_ \| |/ _ \ / _` |/ _` |/ _ \ '\''__|'
 echo -e ' | |_| | (_) \ V  V /| | | | | (_) | (_| | (_| |  __/ |   '
 echo -e ' |____/ \___/ \_/\_/ |_| |_|_|\___/ \__,_|\__,_|\___|_|   '
 echo -e ''
-echo -e '            Update date: 2018-11-25'
+echo -e '            Update date: 2019-01-23'
 echo -e ''
-echo -e "${BOLD} Usage: AvgleDownloader <video-name> <m3u8-url-base64>${RESET}"
+echo -e "${BOLD} ${USAGE}${RESET}"
 echo -e ''
 echo -e "${DIV_LINE}\n"
 
@@ -198,18 +208,37 @@ bind_downloader;
 
 # ===========================
 # Checking arguments
-[[ -z "$1" ]] && error "usage: AvgleDownloader <video-name> <m3u8-url-base64>";
-[[ -z "$2" ]] && error "usage: AvgleDownloader <video-name> <m3u8-url-base64>";
+VIDEO_NAME="";
+M3U8_URL_BASE64="";
+DECODE_M3U8=false;
 
-VIDEO_NAME="$1";
-M3U8_URL_BASE64="$2";
+for argument in "$@"; do
+	opt_name="${argument%%=*}"
+	opt_value="${argument#*=}";
+	case "$opt_name" in
+		name) VIDEO_NAME="$opt_value";;
+		url) M3U8_URL_BASE64="$opt_value";;
+		decode) DECODE_M3U8="$opt_value";;
+		j) ARIA2C_OPT_J="--max-concurrent-downloads=${opt_value}";;
+		*) error "unknown option: \"${opt_name}\"";
+	esac
+done
+
+[[ -z "$VIDEO_NAME" ]] && error "option \"name\" is missing!";
+[[ -z "$M3U8_URL_BASE64" ]] && error "option \"url\" is missing!";
+
 echo -e "${GREY}Video name:${DIM} ${VIDEO_NAME}${RESET}";
-echo -e "${GREY}M3U8 URL Base64:${DIM} ${M3U8_URL_BASE64}${RESET}";
+echo -e "${GREY}Base64 of m3u8 URL:${DIM} ${M3U8_URL_BASE64}${RESET}";
+
+printf "${GREY}Extra options:${DIM}";
+[[ "$DECODE_M3U8" == true ]] && printf " decode";
+[[ -n "$ARIA2C_OPT_J" ]] && printf " $ARIA2C_OPT_J";
+printf "${RESET}\n";
 
 echo "$M3U8_URL_BASE64" | base64 --decode >/dev/null || error "input m3u8 url is invalid!";
-
 M3U8_URL=`echo "$M3U8_URL_BASE64" | base64 --decode`
-echo -e "${GREY}M3U8 URL:${DIM} ${M3U8_URL}${RESET}";
+echo -e "${GREY}Decoded m3u8 URL:${DIM} ${M3U8_URL}${RESET}";
+
 
 M3U8_FILE="${VIDEO_NAME}.m3u8"
 if [[ -f "$M3U8_FILE" ]]; then
@@ -221,8 +250,19 @@ fi
 
 if [[ ! -f "${M3U8_FILE}" ]]; then
 	title "downloading m3u8 file ...";
-	better_wget 'm3u8 file' "$M3U8_URL" "$M3U8_FILE";
-	success "downloaded m3u8 file to \"$M3U8_FILE\"";
+	DOWNLOAD_TARGET_FILE="${M3U8_FILE}";
+	[[ "$DECODE_M3U8" == true ]] && DOWNLOAD_TARGET_FILE="${M3U8_FILE}.base64";
+
+	better_wget 'm3u8 file' "$M3U8_URL" "$DOWNLOAD_TARGET_FILE";
+	success "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
+
+	if [[ "$DECODE_M3U8" == true ]]; then
+		title "decoding m3u8 file ...";
+		base64 --decode "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE" ||
+			error "content of m3u8 is invalid base64!";
+		rm "$DOWNLOAD_TARGET_FILE" || warn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
+		success "decoded to $M3U8_FILE";
+	fi
 fi
 
 # get total file count:
@@ -267,19 +307,26 @@ if [[ "$MISSING_FILE_COUNT" == "0" ]]; then
 fi
 
 function get_better_file_list() {
-	echo -e "$1" | gawk '
+	MAX_STEP=50;
+	[[ "$DOWNLOADER_TYPE" == aria2c ]] && MAX_STEP=999999; # aria2c use multi-threads
+
+	echo -e "$1" | gawk -vMAX_STEP=$MAX_STEP '
 	function printRange() {
 		if(i!=from) print "{" from ".." i "}";
 		else print from;
 	}
-	BEGIN { i=-1; from=-1; }
+	BEGIN {
+		i = -1;
+		from = -1;
+		maxTo = MAX_STEP - 1; # max step is 50: 50-1=49
+	}
 	!/^\s*$/ { # ignore empty line
 		if($1!=i+1) {
-			if(from!=-1) printRange();
+			if(from != -1) printRange();
 			from=$1; i=$1; # reset
 		} else {
 			i=$1;
-			if(i-from==49) { # max step is 50: 50-1=49
+			if(i - from == maxTo) {
 				printRange();
 				from=-1; i=-1;
 			}
