@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-DIR_NAME=$(basename `pwd`)
-M3U8_FILE="${DIR_NAME}.m3u8"
 LIST_FILE="concat.list"
-TARGET_FILE="../${DIR_NAME}.mp4"
 
 # ffmpeg binary file
 # it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
@@ -60,7 +57,7 @@ echo -e ' /_/    \_\_/ \__, |_|\___|'
 echo -e '               __/ |       '
 echo -e '              |___/        '
 echo -e ''
-echo -e '            Update date: 2018-10-30'
+echo -e '            Update date: 2019-01-23'
 echo -e ''
 echo -e "${BOLD} 1.Concat seg-*-v1-a1.ts you downloaded from avgle"
 echo -e "${BOLD} 2.Convert ts file to mp4 using ffmpeg"
@@ -100,12 +97,37 @@ if [[ -z "$WHICH_FFMPEG" ]]; then
 fi
 
 # ===========================
-# Checking path
-[[ -z "$DIR_NAME" ]] && error "current directory name is empty (dangerous)!";
+# Pre-check
+M3U8_FILE="$1";
+if [[ -n "$M3U8_FILE" ]]; then
+	if [[ ! -f "$M3U8_FILE" ]]; then
+		M3U8_FILE="${M3U8_FILE}.m3u8";
+	fi
+	if [[ ! -f "$M3U8_FILE" ]]; then
+		warn "$M3U8_FILE is not a file!";
+		M3U8_FILE="";
+	fi
+fi
+if [[ -z "$M3U8_FILE" ]]; then # if m3u8 file path still empty!
+	M3U8_FILE_COUNT="$(find . -maxdepth 1 -type f -iname '*.m3u8' | wc -l)";
+	[[ "$M3U8_FILE_COUNT" -lt 1 ]] && error "can not find any m3u8 file in current directory!";
+	[[ "$M3U8_FILE_COUNT" -gt 1 ]] && error "too many m3u8 files in currenct directory!";
+	M3U8_FILE="$(find . -maxdepth 1 -type f -iname '*.m3u8' | head -n1 | xargs -I _f basename _f)"
+fi
+if [[ -z "$M3U8_FILE" ]] || [[ ! -f "$M3U8_FILE" ]]; then
+	error "name of m3u8 file is empty. or m3u8 file is missin!";
+fi
+
+VIDEO_NAME="${M3U8_FILE%.*}"
+TEMP_WORKSPACE=".tmp-avgle~${VIDEO_NAME}";
+TARGET_FILE="../${VIDEO_NAME}.mp4"; # relative path for temporary workspace
+
+[[ -d "$TEMP_WORKSPACE" ]] || error "${TEMP_WORKSPACE} is not a directory!";
+pushd "$TEMP_WORKSPACE" || error "goto temp workspace ${TEMP_WORKSPACE} failed!";
 
 # ===========================
 # Getting max number
-MAX_NUMBE=$(ls | tr ' ' '\n' | gawk '
+MAX_NUMBER=$(ls | tr ' ' '\n' | gawk '
 	/^seg-([0-9]+)-v1-a1.ts$/ {
 		if(match($1, /seg-([0-9]+)-v1-a1.ts/, result)) {
 			v = result[1] - 0;
@@ -114,21 +136,21 @@ MAX_NUMBE=$(ls | tr ' ' '\n' | gawk '
 		}
 	}
 	END {print max ? max : "NULL"}')
-[[ "$MAX_NUMBE" == "NULL" ]] && error "could not find any seg-*-v1-a1.ts you download from avgle";
-title "Found avgle ts files, max ts file number is: ${MAX_NUMBE}";
+[[ "$MAX_NUMBER" == "NULL" ]] && error "could not find any seg-*-v1-a1.ts you download from avgle";
+title "Found avgle ts files, max ts file number is: ${MAX_NUMBER}";
 
 # ===========================
 # Compare max number with expected
 EXPECTED="$1";
 if [[ -n "$EXPECTED" ]]; then
-	[[ "$EXPECTED" != "$MAX_NUMBE" ]] && error "expected max number of video fragments is: ${EXPECTED}";
+	[[ "$EXPECTED" != "$MAX_NUMBER" ]] && error "expected max number of video fragments is: ${EXPECTED}";
 	title "expected max number of video fragments is same with actual";
 fi
 
 # ===========================
 # Valid all ts files is under folder
 FILES_OK=true
-for (( i=1 ; i<=$MAX_NUMBE ; i++ )) do
+for (( i=1 ; i<=$MAX_NUMBER ; i++ )) do
 	FNAME="seg-${i}-v1-a1.ts";
 	if [[ ! -f "$FNAME" ]]; then
 		warn "$FNAME is missing!";
@@ -141,7 +163,7 @@ title "Confirmed all *.ts files are existed"
 # ===========================
 # Generate concat list file for ffmpeg
 title "Generating list file for ffmpeg ...";
-[[ -f "$M3U8_FILE" ]] || error "m3u8 play list file \"$M3U8_FILE\" is not existed!";
+[[ -f "../$M3U8_FILE" ]] || error "m3u8 play list file \"../$M3U8_FILE\" is not existed!";
 
 if [[ -e "$LIST_FILE" ]]; then
 	echo -e "\nList file ($LIST_FILE) is existed! Do you want to delete it and continue?";
@@ -149,7 +171,7 @@ if [[ -e "$LIST_FILE" ]]; then
 	rm -f $LIST_FILE || error "could not delete ${LIST_FILE}";
 fi
 
-sed -e '/^#/d' -e 's:^http.*mp4/:file :g' "$M3U8_FILE" > "$LIST_FILE" \
+sed -e '/^#/d' -e 's:^http.*mp4/:file :g' "../$M3U8_FILE" > "$LIST_FILE" \
 	|| error "generate list file failed!";
 
 echo -e "";
@@ -174,14 +196,18 @@ fi
 	|| error "ffmpeg convert response exception!"
 title "Converted ${LIST_FILE} file to ${TARGET_FILE}";
 
+popd || error "got back to parent directory failed!";
+
 # ===========================
 # Deleting files
-echo -e "\nDo you want to delete temporarty files (included *.d.ts)?";
+echo -e "\nDo you want to delete temp directory and m3u8 file ?";
 confirm || finish
 
-title "Deleting seg-*-v1-a1.ts files ..."
-for (( i=1 ; i<=$MAX_NUMBE ; i++ )) do rm -f "seg-${i}-v1-a1.ts"; done
-rm -f "${LIST_FILE}";
+title "Deleting temp directory ${TEMP_WORKSPACE} ..."
+rm -r "${TEMP_WORKSPACE}" || error "delete failed!";
+
+title "Deleting m3u8 file ${M3U8_FILE} ..."
+rm "${M3U8_FILE}" || error "delete failed!";
 title "All temporary files are deleted!"
 
 finish

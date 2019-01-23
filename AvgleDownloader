@@ -239,6 +239,10 @@ echo "$M3U8_URL_BASE64" | base64 --decode >/dev/null || error "input m3u8 url is
 M3U8_URL=`echo "$M3U8_URL_BASE64" | base64 --decode`
 echo -e "${GREY}Decoded m3u8 URL:${DIM} ${M3U8_URL}${RESET}";
 
+TEMP_WORKSPACE=".tmp-avgle~${VIDEO_NAME}";
+if [[ ! -d "$TEMP_WORKSPACE" ]]; then
+	mkdir "$TEMP_WORKSPACE" || error "create temp workspace failed: $TEMP_WORKSPACE";
+fi
 
 M3U8_FILE="${VIDEO_NAME}.m3u8"
 if [[ -f "$M3U8_FILE" ]]; then
@@ -250,11 +254,19 @@ fi
 
 if [[ ! -f "${M3U8_FILE}" ]]; then
 	title "downloading m3u8 file ...";
+
 	DOWNLOAD_TARGET_FILE="${M3U8_FILE}";
 	[[ "$DECODE_M3U8" == true ]] && DOWNLOAD_TARGET_FILE="${M3U8_FILE}.base64";
 
+	# save log into temporary workspace
+	OLD_DOWNLOAD_LOG="${DOWNLOAD_LOG}";
+	DOWNLOAD_LOG="${TEMP_WORKSPACE}/${OLD_DOWNLOAD_LOG}";
+
 	better_wget 'm3u8 file' "$M3U8_URL" "$DOWNLOAD_TARGET_FILE";
 	success "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
+
+	# restore log location
+	DOWNLOAD_LOG="${OLD_DOWNLOAD_LOG}";
 
 	if [[ "$DECODE_M3U8" == true ]]; then
 		title "decoding m3u8 file ...";
@@ -335,6 +347,8 @@ function get_better_file_list() {
 	END { if(from>0) printRange(); }'
 }
 
+pushd "$TEMP_WORKSPACE" || error "goto temp workspace failed: $TEMP_WORKSPACE";
+
 get_better_file_list "$MISSING_FILE" | while read range; do
 
 	DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}/seg-${range}-v1-a1.ts";
@@ -346,4 +360,5 @@ get_better_file_list "$MISSING_FILE" | while read range; do
 
 done || exit 1;
 
+# popd 2>/dev/null;
 finish;

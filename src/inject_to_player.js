@@ -40,10 +40,8 @@ function inject2player(utilsContext, errorStr, paramters = {}) {
 			}
 
 			command = [
-				`mkdir ${carNumber};`,
-				`cd ${carNumber};`,
 				`AvgleDownloader ${decodeOpt} name=${carNumber} url=${m3u8URLBase64};`,
-				`Avgle; # combine video files`
+				`Avgle ${carNumber}; # combine video files`
 			].join('\n');
 			break;
 		}
