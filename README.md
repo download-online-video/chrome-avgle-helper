@@ -50,6 +50,7 @@ brew install aria2 # OS X
 If you are interested in fixing issues and improving codes to this repository, you can get references from these places:
 
 - [Chrome extension documents](https://developer.chrome.com/extensions/devguide)
+- [aria2 documents](https://aria2.github.io/manual/en/html/index.html)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License 开源协议

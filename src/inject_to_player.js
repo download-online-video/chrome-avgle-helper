@@ -13,9 +13,9 @@ export function getInjectScript(errorStr, paramters) {
 }
 
 function inject2player(utilsContext, errorStr, paramters = {}) {
-	let tabURL = String(paramters.tabURL || ''),
-		m3u8URLBase64 = String(paramters.m3u8URLBase64 || '');
-
+	const tabURL = String(paramters.tabURL || '');
+	const m3u8URLBase64 = String(paramters.m3u8URLBase64 || '');
+	const decodeOpt = paramters.needDecode ? 'decode=true' : '';
 
 	let videoTitleDOM = document.querySelector('.container .row .col-lg-12 h1');
 
@@ -42,7 +42,7 @@ function inject2player(utilsContext, errorStr, paramters = {}) {
 			command = [
 				`mkdir ${carNumber};`,
 				`cd ${carNumber};`,
-				`AvgleDownloader ${carNumber} ${m3u8URLBase64};`,
+				`AvgleDownloader ${decodeOpt} name=${carNumber} url=${m3u8URLBase64};`,
 				`Avgle; # combine video files`
 			].join('\n');
 			break;

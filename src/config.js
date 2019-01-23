@@ -3,13 +3,29 @@
  * 用于拦截视频列表 m3u8 文件请求的 URL Pattern 数组
  */
 export const M3U8_PATTERN_ARRAY = [
+	// 1. Normal m3u8 file
 	'*://*/*.m3u8',
 	'*://*/*.m3u8?*',
+
+	// 2. Base64 encoded m3u8 file
+	'*://gooqlevideo.xyz/playback/*',
+	/*
+	Description:
+	<https://redirect.avgle.com/videoplayback
+	    ?sparams=clen,dur,ei,expire,gir,hcs,id,ip,ipbits,ipbypass,
+	    itag,lmt,mime,mm,mn,ms,mv,pl,ratebypass,requiressl,shardbypass,
+	    source,upn&ip=xx.xx.xx.xx ...>
+	=== Then redirect to ==>
+	<https://gooqlevideo.xyz/playback ...>
+	*/
 ];
 
 export const PROCESSABLE_M3U8_PATTERN = [
-	{pattern: /\.adcdn\.com\//},
-	{pattern: /\.cdn\.qooqlevideo\.com\//},
+	// { pattern: /\.adcdn\.com\// },
+	// { pattern: /\.ahcdn\.com\// },
+	{ pattern: /\.\w+cdn\.com\// },
+	{ pattern: /\.cdn\.qooqlevideo\.com\// },
+	{ pattern: /\/playback\//, base64Encoded: true },
 ]
 
 /**

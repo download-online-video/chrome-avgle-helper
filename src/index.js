@@ -75,7 +75,11 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 		// xhr.onerror = onXHRError;
 		// xhr.send();
 
-		injectScript(null, { m3u8URLBase64, tabURL: tab.url });
+		injectScript(null, {
+			m3u8URLBase64,
+			tabURL: tab.url,
+			needDecode: matchedProcesser.base64Encoded
+		});
 
 		function injectScript(err, parameters = {}) {
 			if (err && (typeof err != 'string'))
