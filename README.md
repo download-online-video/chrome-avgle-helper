@@ -21,17 +21,8 @@ You can learn how to create Chrome extension, write Bash script and more from th
 **这个插件仅供用于研究学习. 请勿用于非法用途**   
 你可以从这个仓库中学到如何创建 Chrome 插件, 编写 Bash 脚本等等 ...
 
-## 🚀 Enable `aria2` multi-thread download mode
 
-This feature is for testing only!   
-
-``` bash
-sudo apt install aria2 # Ubuntu
-brew install aria2 # OS X
-```
-
-
-## Function 功能
+## Feature 功能
 
 1. download video 下载
 2. display video number friendly 车牌号
@@ -53,6 +44,15 @@ brew install aria2 # OS X
 6. Usage example:
 	1. Download video follow command on the online player page by script `AvgleDownloader`
 	2. Combine video files by script `Avgle`
+
+## 🚀 Enable `aria2` multi-thread download mode 贼快
+
+``` bash
+sudo apt install aria2 # Ubuntu
+brew install aria2 # OS X
+```
+
+Windows user: Download `aria2` in [Github](https://github.com/aria2/aria2/releases) and extract it into `windows-libs` directory.
 
 ## Contributing 贡献/修改代码
 
