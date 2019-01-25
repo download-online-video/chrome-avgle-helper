@@ -1,6 +1,6 @@
 {
 	"name": "chrome-avgle-helper",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "A Chrome extension for enhancing Avgle website",
 	"main": "src/index.js",
 	"scripts": {

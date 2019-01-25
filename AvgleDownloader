@@ -139,7 +139,7 @@ echo -e ' | | | |/ _ \ \ /\ / / '\''_ \| |/ _ \ / _` |/ _` |/ _ \ '\''__|'
 echo -e ' | |_| | (_) \ V  V /| | | | | (_) | (_| | (_| |  __/ |   '
 echo -e ' |____/ \___/ \_/\_/ |_| |_|_|\___/ \__,_|\__,_|\___|_|   '
 echo -e ''
-echo -e '            Update date: 2019-01-23'
+echo -e '            Update date: 2019-01-26'
 echo -e ''
 echo -e "${BOLD} ${USAGE}${RESET}"
 echo -e ''
@@ -320,7 +320,7 @@ fi
 
 function get_better_file_list() {
 	MAX_STEP=50;
-	[[ "$DOWNLOADER_TYPE" == aria2c ]] && MAX_STEP=999999; # aria2c use multi-threads
+	[[ "$DOWNLOADER_TYPE" == aria2c ]] && MAX_STEP=100; # aria2c use multi-threads
 
 	echo -e "$1" | gawk -vMAX_STEP=$MAX_STEP '
 	function printRange() {

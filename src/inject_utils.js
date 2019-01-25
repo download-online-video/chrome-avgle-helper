@@ -37,6 +37,9 @@ function parseCarNumber(str = '') {
 		[/(\d+)[-_\s](\d+)[-_\s]Carib(?:bean(?:com)?)?/i, match => `carib-${match[1]}-${match[2]}`],
 		[/Carib(?:bean(?:com)?)?[-_\s]?(\d+)[-_\s]?(\d+)/i, match => `carib-${match[1]}-${match[2]}`],
 
+		//Korean BJ Live Share (KBJ KOREAN BJ2019012311)
+		[/(?:kbj|korean).+bj(20\d+)/i, match => `Korean-BJ-${match[1]}`],
+
 		//xxx-010 ...
 		/\w+-\d+/i,
 
