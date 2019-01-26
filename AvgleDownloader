@@ -10,6 +10,7 @@ OPTIONS='Options:'\
 
 # Add this referer for fix forbidden download action on CDN
 HTTP_REFERER="https://avgle.com"
+HTTP_REFERER_XVIDEOS="https://www.xvideos.com";
 # enable referer header by default, but it will be turn off (false) after download first file failed.
 ENABLE_REFERER=true
 
@@ -26,6 +27,8 @@ DOWNLOADER_TYPE="wget"; # or "aria2c"
 
 ARIA2C_OPT_J=""; # https://aria2.github.io/manual/en/html/aria2c.html#cmdoption-j
 DOWNLOAD_LOG="avgle-download.log";
+
+SUPPORTED_PAGE_TYPE=(avgle xvideos);
 
 #================================
 #====   Colorized variables  ====
@@ -67,7 +70,6 @@ function error() { echo -e "${RED_BOLD}  error: ${RED}$1${RESET}\n"; exit 1; }
 
 #===================================
 #=======  Network functions  =======
-
 function _download() {
 	if [[ "$DOWNLOADER_TYPE" == aria2c ]]; then
 		[[ -f "$DOWNLOAD_LOG" ]] && rm "$DOWNLOAD_LOG";
@@ -86,6 +88,7 @@ function _download() {
 					print $i;
 					out_name = $i;
 					gsub(/^.*\//, "", out_name);
+					gsub(/\?.*$/, "", out_name);
 					print "  out=" out_name;
 				}
 			}
@@ -125,6 +128,17 @@ function better_wget() {
 	fi
 }
 
+#===================================
+#=======  Arguments checker functions  =======
+function is_supported_page_type() {
+	local PAGE_TYPE_OK=false;
+	for _type in "${SUPPORTED_PAGE_TYPE[@]}"; do
+		if [[ $_type == "$PAGE_TYPE" ]]; then
+			PAGE_TYPE_OK=true;
+		fi
+	done
+	[[ "$PAGE_TYPE_OK" == true ]] && return 0 || return 1;
+}
 
 DIV_LINE="===========================================================";
 echo -e "\n${DIV_LINE}"
@@ -193,8 +207,7 @@ function bind_downloader() {
 	if search_exec_file "$ARIA2C_BIN" optional; then
 		ARIA2C_BIN="$exec_file_result";
 		DOWNLOADER_TYPE="aria2c";
-		echo -e "${CYAN_BOLD}Experimental improvement: use \"aria2c\" instead of \"wget\"";
-		echo -e "      🚀  use aria2c will be faster than wget 🚀${RESET}"
+		echo -e "${CYAN_BOLD}🚀  aria2 mode is enabled! 🚀${RESET}"
 
 	elif search_exec_file "$WGET_BIN" required "$WGET_BIN"; then
 		WGET_BIN="$exec_file_result";
@@ -211,6 +224,7 @@ bind_downloader;
 VIDEO_NAME="";
 M3U8_URL_BASE64="";
 DECODE_M3U8=false;
+PAGE_TYPE="avgle";
 
 for argument in "$@"; do
 	opt_name="${argument%%=*}"
@@ -219,6 +233,7 @@ for argument in "$@"; do
 		name) VIDEO_NAME="$opt_value";;
 		url) M3U8_URL_BASE64="$opt_value";;
 		decode) DECODE_M3U8="$opt_value";;
+		type) PAGE_TYPE="$opt_value";;
 		j) ARIA2C_OPT_J="--max-concurrent-downloads=${opt_value}";;
 		*) error "unknown option: \"${opt_name}\"";
 	esac
@@ -226,6 +241,7 @@ done
 
 [[ -z "$VIDEO_NAME" ]] && error "option \"name\" is missing!";
 [[ -z "$M3U8_URL_BASE64" ]] && error "option \"url\" is missing!";
+is_supported_page_type "$PAGE_TYPE" || error "invalid type: \"${PAGE_TYPE}\" ";
 
 echo -e "${GREY}Video name:${DIM} ${VIDEO_NAME}${RESET}";
 echo -e "${GREY}Base64 of m3u8 URL:${DIM} ${M3U8_URL_BASE64}${RESET}";
@@ -233,13 +249,17 @@ echo -e "${GREY}Base64 of m3u8 URL:${DIM} ${M3U8_URL_BASE64}${RESET}";
 printf "${GREY}Extra options:${DIM}";
 [[ "$DECODE_M3U8" == true ]] && printf " decode";
 [[ -n "$ARIA2C_OPT_J" ]] && printf " $ARIA2C_OPT_J";
+[[ -n "$PAGE_TYPE" ]] && printf " $PAGE_TYPE";
 printf "${RESET}\n";
+
+# fix HTTP referer
+[[ "$PAGE_TYPE" == xvideos ]] && HTTP_REFERER="$HTTP_REFERER_XVIDEOS";
 
 echo "$M3U8_URL_BASE64" | base64 --decode >/dev/null || error "input m3u8 url is invalid!";
 M3U8_URL=`echo "$M3U8_URL_BASE64" | base64 --decode`
 echo -e "${GREY}Decoded m3u8 URL:${DIM} ${M3U8_URL}${RESET}";
 
-TEMP_WORKSPACE=".tmp-avgle~${VIDEO_NAME}";
+TEMP_WORKSPACE=".tmp-${PAGE_TYPE}~${VIDEO_NAME}";
 if [[ ! -d "$TEMP_WORKSPACE" ]]; then
 	mkdir "$TEMP_WORKSPACE" || error "create temp workspace failed: $TEMP_WORKSPACE";
 fi
@@ -281,21 +301,46 @@ fi
 function getLastVideoFragment() { cat "$M3U8_FILE" | gawk '!/^#/ {print $0}' | tail -n1; }
 LAST_FRAGMENT_URL=`getLastVideoFragment`;
 
-LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}";
-LAST_FRAGMENT_ID="${LAST_FRAGMENT##seg-}";
-LAST_FRAGMENT_ID="${LAST_FRAGMENT_ID%%-*}";
-echo -e "${GREY}Total fragments:${DIM} ${LAST_FRAGMENT_ID} (${LAST_FRAGMENT})${RESET}";
+if [[ "$PAGE_TYPE" == xvideos ]]; then
+	LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}"; # get base name of video file
+	LAST_FRAGMENT="${LAST_FRAGMENT%%\?*}"; # remove query string
+	LAST_FRAGMENT_ID="$(echo "$LAST_FRAGMENT" |
+		gawk '{if(match($0,/hls-[0-9]+p([0-9]+)/,r))print r[1];}')"
+
+	FIRST_FRAGMENT_ID=0;
+
+	FILE_NAME_PREFIX="${LAST_FRAGMENT%%p*}p";
+	FILE_NAME_SUFFIX=".ts";
+	DOWNLOAD_URL_PREFIX="${M3U8_URL%/*}";
+	DOWNLOAD_URL_SUFFIX="?${LAST_FRAGMENT_URL##*\?}";
+	# echo "$DOWNLOAD_URL_PREFIX" " <...> " "$DOWNLOAD_URL_SUFFIX";
+
+else # avgle
+	LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}"; # get base name of video file
+	LAST_FRAGMENT_ID="${LAST_FRAGMENT##seg-}"; # remove prefix of file name
+	LAST_FRAGMENT_ID="${LAST_FRAGMENT_ID%%-*}"; # remove suffix
+
+	FIRST_FRAGMENT_ID=1;
+
+	FILE_NAME_PREFIX="seg-";
+	FILE_NAME_SUFFIX="-v1-a1.ts";
+	DOWNLOAD_URL_PREFIX="${LAST_FRAGMENT_URL%/*}";
+fi
+echo -e "${GREY}Fragments info:${DIM}\
+    LastID(${LAST_FRAGMENT_ID})\
+	LastFile(${FILE_NAME_PREFIX}${LAST_FRAGMENT_ID}${FILE_NAME_SUFFIX})\
+    LastFragment(${LAST_FRAGMENT})${RESET}";
 
 [[ -z "$LAST_FRAGMENT_ID" ]] && error "could not get last video fragment id from m3u8 file!";
 
-DOWNLOAD_URL_PREFIX="${LAST_FRAGMENT_URL%/*}";
 
 title "downloading missing files ...";
+pushd "$TEMP_WORKSPACE" || error "goto temp workspace failed: $TEMP_WORKSPACE";
 
 MISSING_FILE="";
 MISSING_FILE_COUNT=0;
-for (( i=1 ; i<=$LAST_FRAGMENT_ID ; i++ )); do
-	DOWNLOAD_TO="seg-${i}-v1-a1.ts"
+for (( i=$FIRST_FRAGMENT_ID ; i<=$LAST_FRAGMENT_ID ; i++ )); do
+	DOWNLOAD_TO="${FILE_NAME_PREFIX}${i}${FILE_NAME_SUFFIX}";
 	if [[ -e "${DOWNLOAD_TO}" ]]; then
 		# there has aria2 continue download mark file
 		if [[ ! -e "${DOWNLOAD_TO}.aria2" ]] || [[ "$DOWNLOADER_TYPE" != aria2c ]]; then
@@ -327,35 +372,34 @@ function get_better_file_list() {
 		if(i!=from) print "{" from ".." i "}";
 		else print from;
 	}
+	function resetTo(num) { from = num; i = num; }
 	BEGIN {
-		i = -1;
-		from = -1;
 		maxTo = MAX_STEP - 1; # max step is 50: 50-1=49
+		resetTo(-128);
 	}
 	!/^\s*$/ { # ignore empty line
-		if($1!=i+1) {
-			if(from != -1) printRange();
-			from=$1; i=$1; # reset
+		if($1 != i + 1) {
+			if(from != -128) printRange();
+			resetTo($1);
 		} else {
-			i=$1;
+			i = $1;
 			if(i - from == maxTo) {
 				printRange();
-				from=-1; i=-1;
+				resetTo(-128);
 			}
 		}
 	}
-	END { if(from>0) printRange(); }'
+	END { if(from >= 0) printRange(); }'
 }
-
-pushd "$TEMP_WORKSPACE" || error "goto temp workspace failed: $TEMP_WORKSPACE";
-
 get_better_file_list "$MISSING_FILE" | while read range; do
 
-	DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}/seg-${range}-v1-a1.ts";
-	DOWNLOAD_URL=$(eval "echo $DOWNLOAD_URL");
+	P0="${DOWNLOAD_URL_PREFIX}/${FILE_NAME_PREFIX}";
+	P1="${FILE_NAME_SUFFIX}${DOWNLOAD_URL_SUFFIX}";
+	DOWNLOAD_URL="$(eval "echo $range" |
+		gawk -vp0="$P0" -vp1="$P1" '{for(i=1;i<=NF;i++)printf("%s ",p0 $i p1);}')";
 
 	title "downloading ${range}/${LAST_FRAGMENT_ID} ...";
-	better_wget "\"seg-${range}-v1-a1.ts\", please try again!" "$DOWNLOAD_URL";
+	better_wget "\"${FILE_NAME_PREFIX}${range}${FILE_NAME_SUFFIX}\", please try again!" "$DOWNLOAD_URL";
 	success "progress ${range}/${LAST_FRAGMENT_ID}";
 
 done || exit 1;
