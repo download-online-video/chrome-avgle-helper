@@ -48,20 +48,15 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 	chrome.tabs.get(details.tabId, tab => {
 		info(`Tab title: ${tab.title}`);
 		info(`Tab URL: ${tab.url}`);
-		if (!tab.url.match(VIDEO_PAGE_PATTERN))
-			return info(`Ignore: URL of tab is not matched with ${String(VIDEO_PAGE_PATTERN)}`);
+
+		let matchedPage = VIDEO_PAGE_PATTERN.find(it => it.pattern.test(tab.url));
+		if (!matchedPage)
+			return info(`Ignore: URL of tab is not matched in VIDEO_PAGE_PATTERN`);
 
 		let m3u8URL = details.url;
 		let m3u8URLBase64 = btoa(m3u8URL);
 
-		let matchedProcesser = null;
-		for (const processer of PROCESSABLE_M3U8_PATTERN) {
-			if (processer.pattern.test(m3u8URL)) {
-				matchedProcesser = processer;
-				break;
-			}
-		}
-
+		let matchedProcesser = PROCESSABLE_M3U8_PATTERN.find(it => it.pattern.test(m3u8URL));
 		if (!matchedProcesser)
 			return info(`Ignore: URL of m3u8 request is not matched with any pattern in PROCESSABLE_M3U8_PATTERN`);
 
@@ -78,6 +73,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 		injectScript(null, {
 			m3u8URLBase64,
 			tabURL: tab.url,
+			pageType: matchedPage.type,
 			needDecode: matchedProcesser.base64Encoded
 		});
 

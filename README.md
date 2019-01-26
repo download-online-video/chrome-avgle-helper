@@ -4,11 +4,12 @@
 
 A Chrome extension for a free community  一个给司机用的Chrome插件
 
-## 2.0.0 Breaking Change
+## 2.x.x Breaking Change
 
 **Please reinstall `AvgleDownloader` and `Avgle` scripts!!** 请重装这个两个脚本
 
-- Support latest Avgle changes (base64 encoded m3u8 file) 更新了最近 Avgle 的变动
+- Add support for **xvideos**
+- Add support for latest Avgle changes (base64 encoded m3u8 file) 更新了最近 Avgle 的变动
 - Put the temporary files generated during download into a separate workspace directory. 独立的临时文件存放目录 
 - Simpilfy download commands. 下载命令更简单了
 

@@ -26,10 +26,14 @@ export const PROCESSABLE_M3U8_PATTERN = [
 	{ pattern: /\.\w+cdn\.com\// },
 	{ pattern: /\.cdn\.qooqlevideo\.com\// },
 	{ pattern: /\/playback\//, base64Encoded: true },
+	{ pattern: /\w+\.xvideos-cdn\.com/ }, // https://hls-hw.xvideos-cdn.com
 ]
 
 /**
  * URL pattern of Avgle video player page
  * Avgle 视频播放页面的 URL Pattern
  */
-export const VIDEO_PAGE_PATTERN = /(https|http):\/\/avgle.com\/video\/\w+/;
+export const VIDEO_PAGE_PATTERN = [
+	{ pattern: /^(https|http):\/\/avgle.com\/video\/\w+/, type: 'avgle' },
+	{ pattern: /^(https|http):\/\/(?:www\.)xvideos.com\/video\w+/, type: 'xvideos' },
+];
