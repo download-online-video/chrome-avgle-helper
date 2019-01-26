@@ -9,10 +9,11 @@ GPG_SUBKEY="852C3C5D62302480";
 SSH_PUBKEY_END="Z7cXBQ==";
 USERNAME="vide0";
 EMAIL="vide0-helper@gmx.com";
+REPO="git@github-${USERNAME}:download-online-video/chrome-avgle-helper.git";
 
 echo "Script for config git account: vide0";
 
-fatal() { echo "fatal: $1"; exit 1; }
+fatal() { echo -e "fatal: $1"; exit 1; }
 find_gpg_key() { gpg --list-secret-keys --keyid-format LONG | grep -e "rsa4096/$GPG_SUBKEY"; }
 find_git_remote() { git remote -v | grep -e "git@github-$USERNAME:"; }
 find_ssh_pubkey() { ssh-add -L | grep -e "$SSH_PUBKEY_END"; }
@@ -26,7 +27,8 @@ echo -e "GPG Subkeys: ${GPG_SUBKEY}\n";
 
 echo -e "[.] checking git ...";
 [[ -d ".git" ]] || fatal "$(pwd) is not a git project!"
-[[ -n "$(find_git_remote)" ]] || fatal "git remote \"github-$USERNAME\" is not existed!";
+[[ -n "$(find_git_remote)" ]] ||
+	fatal "git remote \"github-$USERNAME\" is not existed!\n  (git remote add origin $REPO)";
 
 echo -e "[.] checking SSH ...";
 [[ -n "$(find_ssh_pubkey)" ]] || fatal "ssh public key for \"github-$USERNAME\" is not existed in \`ssh-add -L\` !";
