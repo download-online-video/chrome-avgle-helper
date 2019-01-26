@@ -30,7 +30,9 @@ You can learn how to create Chrome extension, write Bash script and more from th
 
 ## Install & Usage 安装 & 使用
 
-1. Install `Git` and understand the basic use of `Git`
+简单来说: 安装 `Git`, 克隆这个仓库到本地, 从本地安装Chrome插件, 运行 `./install.sh`.
+
+1. Install `Git` and understand the basic usage of `Git`.
 2. Clone this repository into local computer.
 3. Install Chrome extension
 	1. Navigate to `chrome://extensions` in chrome.
@@ -52,8 +54,6 @@ You can learn how to create Chrome extension, write Bash script and more from th
 sudo apt install aria2 # Ubuntu
 brew install aria2 # OS X
 ```
-
-Windows user: Download `aria2` in [Github](https://github.com/aria2/aria2/releases) and extract it into `windows-libs` directory.
 
 ## Contributing 贡献/修改代码
 

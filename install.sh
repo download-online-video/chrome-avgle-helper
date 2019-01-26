@@ -30,8 +30,11 @@ if [[ "$UNAME_S" == MINGW* ]] || [[ "$UNAME_S" == CYGWIN* ]]; then
 	echo "[.] checking windows libraries (dependencies) ...";
 	echo "[.] ffmpeg.exe";
 	[[ -z "$(find windows-libs -type f -name 'ffmpeg.exe')" ]] && throw "ffmpeg.exe is missing! $INSTALL_DEPS";
-	echo "[.] wget.exe";
-	[[ -z "$(find windows-libs -type f -name 'wget.exe')" ]] && throw "ffmpeg.exe is missing! $INSTALL_DEPS";
+	echo "[.] aria2c.exe"
+	if [[ -z "$(find windows-libs -type f -name 'aria2c.exe')" ]]; then
+		echo "[.] wget.exe";
+		[[ -z "$(find windows-libs -type f -name 'wget.exe')" ]] && throw "aria2c.exe/wget.exe is missing! $INSTALL_DEPS";
+	fi
 	echo "[~] dependencies have been checked!";
 
 

@@ -71,6 +71,9 @@ function error() { echo -e "${RED_BOLD}  error: ${RED}$1${RESET}\n"; exit 1; }
 #===================================
 #=======  Network functions  =======
 function _download() {
+	# declare `referer` as a local variable, because it should be reset after
+	#    "with_referer" to "no_referer"
+	local referer;
 	if [[ "$DOWNLOADER_TYPE" == aria2c ]]; then
 		[[ -f "$DOWNLOAD_LOG" ]] && rm "$DOWNLOAD_LOG";
 

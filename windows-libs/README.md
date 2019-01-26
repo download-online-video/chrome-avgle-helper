@@ -21,39 +21,24 @@ Please Install **Git** before read following content.
 
 ## Download dependencis into this directory
 
+Download links: 下载链接:
+
+- Windows 32-bit: <https://raw.githubusercontent.com/download-online-video/chrome-avgle-helper-windows-libs/master/ffmpeg-aria2-win32.7z>
+- Windows 64-bit: <https://raw.githubusercontent.com/download-online-video/chrome-avgle-helper-windows-libs/master/ffmpeg-aria2-win64.7z> 
+
 下载相关依赖到这个目录. (装完依赖后, 目录结构会长的像下面这个样)
 
 After you download dependencies into this directory, this directory will looks like this:
 
 ```
 - windows-libs
-|-- ffmpeg-4.0.2-win64-static
+|-- ffmpeg-4.1-win32-static
 	|-- bin
-	|-- doc
 	|-- presets
-|-- wget-1.19.4-win64
+|-- aria2-1.34.0-win-32bit-build1
+|-- README.md (Current document)
 ```
 
-## Quick way 快速下载
+## Dependencies Repo
 
-### Windows 32-bit
-
-<https://drive.google.com/open?id=11RRrAFCyTmYE4oXLsqKkw6wLNvW0tNoU>
-
-### Windows 64-bit
-
-<https://drive.google.com/open?id=1wWFxy60JPDZQrTSPxvUTdi8QwF_ntl5Z>
-
-## Custom way 自己来
-
-### FFmpeg
-
-<https://www.ffmpeg.org/download.html>   
-OR  
-<https://ffmpeg.zeranoe.com/builds/>
-
-Linking type: **Static**
-
-### GNU Wget for Windows
-
-<https://eternallybored.org/misc/wget/>
+<https://github.com/download-online-video/chrome-avgle-helper-windows-libs>
