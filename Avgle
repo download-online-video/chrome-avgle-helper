@@ -13,56 +13,50 @@ SUPPORTED_PAGE_TYPE=(avgle xvideos);
 if [[ -t 1 ]]; then # is terminal?
 	COLOR_MODE=`tput colors`;
 	if [[ -n "$COLOR_MODE" ]] && [[ "$COLOR_MODE" -ge 8 ]]; then
-		BOLD="\x1b[1m";
-		RESET="\x1b[0m";
-
-		RED="\x1b[0;31m";
-		RED_BOLD="\x1b[1;31m";
-		YELLOW_BOLD="\x1b[1;33m";
-		GREEN="\x1b[0;32m";
-		GREEN_BOLD="\x1b[1;32m";
-		BLUE="\x1b[0;34m";
-		BLUE_BOLD="\x1b[1;34m";
+		BOLD="\x1b[1m";      DIM="\x1b[2m";           RESET="\x1b[0m";
+		RED="\x1b[0;31m";    RED_BOLD="\x1b[1;31m";
+		YELLOW="\x1b[0;33m"; YELLOW_BOLD="\x1b[1;33m";
+		GREEN="\x1b[0;32m";  GREEN_BOLD="\x1b[1;32m";
+		BLUE="\x1b[0;34m";   BLUE_BOLD="\x1b[1;34m";
+		GREY="\x1b[37m";     CYAN_BOLD="\x1b[1;36m";
 	fi
 fi
 #================================
 #====   Basic functions  ========
 function confirm() {
 	local yn;
-	while true; do read -p "Confirm (y/n) > " yn
-		case $yn in
-			Y|Yes|YES|yes|y) return 0 ;;
-			N|No|NO|no|n) return 1 ;;
-		esac
+	while read -p "Confirm (y/n) > " yn; do
+		if [[ "$yn" == y* ]] || [[ "$yn" == Y* ]]; then return 0; fi
+		if [[ "$yn" == n* ]] || [[ "$yn" == N* ]]; then return 1; fi
 	done
 }
-function title() { echo -e "${BLUE_BOLD}# $1 ${RESET}"; }
+function title() { echo -e "${BLUE_BOLD}# ${1}${RESET}"; }
 function finish() { echo -e "\n${GREEN_BOLD}# Finish!${RESET}\n"; exit 0; }
-function user_abort() { echo -e "\n${YELLOW_BOLD}# Abort by user!${RESET}\n"; exit 0; }
-function warn() { echo -e "${YELLOW_BOLD} warning: ${1} ${RESET}"; }
-function success() { echo -e "${GREEN} success: ${1} ${RESET}"; }
-function error() { echo -e "${RED_BOLD}  error: ${RED}$1${RESET}\n"; exit 1; }
-#================================
+function userAbort() { echo -e "\n${YELLOW_BOLD}# Abort by user!${RESET}\n"; exit 0; }
+function warn() { echo -e "${YELLOW_BOLD}  Warning: ${1} ${RESET}"; }
+function success() { echo -e "${GREEN}  Success: ${1} ${RESET}"; }
+function error() { echo -e "${RED_BOLD}  Error:   ${RED}$1${RESET}\n"; exit 1; }
 
-#===========================================
-#        M a i n   F u n c t i o n
-#===========================================
 
-DIV_LINE="===============================================";
-echo -e "\n${DIV_LINE}"
-echo -e '                    _      '
-echo -e '     /\            | |     '
-echo -e '    /  \__   ____ _| | ___ '
-echo -e '   / /\ \ \ / / _` | |/ _ \'
-echo -e '  / ____ \ V / (_| | |  __/'
-echo -e ' /_/    \_\_/ \__, |_|\___|'
-echo -e '               __/ |       '
-echo -e '              |___/        '
+#=======================================================
+# Banner color palette: #EF413F #FFB938 #3484EE #21A658
+C0="$RESET"; C1="$RED"; C2="$YELLOW"; C3="$BLUE"; C4="$GREEN"; C5="$GREY"
+if [[ -n "$C0" ]]; then
+	if [[ "$COLORTERM" = truecolor ]] || [[ "$COLORTERM" = 24bit ]]; then
+		C1="\x1b[38;2;239;65;63m";   C2="\x1b[38;2;255;185;56m";
+		C3="\x1b[38;2;52;132;238m";  C4="\x1b[38;2;33;166;88m";
+	fi
+fi
+# Print banner
+echo -e '     '$C1'_'$C0'        '$C0'        '$C4'_   '$C1'         '$C0
+echo -e '    '$C1'/ \\'$C2'    __'$C3'  __ _  '$C4'| | '$C1'  ___    '$C0
+echo -e '   '$C1'/ _ \\'$C2'  / /'$C3' / _` | '$C4'| | '$C1' / _ \\  '$C0
+echo -e '  '$C1'/ ___ '$C2'\\/ / '$C3'| (_| | '$C4'| | '$C1'|  __/   '$C0
+echo -e ' '$C1'/_/   '$C2'\\__/  '$C3' \\__, |'$C4' |_|'$C1'  \\___| '$C0
+echo -e '  '$C0'      '$C0'      '$C3'|___/   '$C4'    '$C1'         '$C0
+echo -e "${BOLD} Merge ts files you downloaded from avgle into mp4 via ffmpeg${RESET}"
+echo -e "${DIM} Updated date: 2019-01-30${RESET}"
 echo -e ''
-echo -e '            Update date: 2019-01-26'
-echo -e ''
-echo -e "${BOLD}    Merge ts files you downloaded from avgle into mp4 via ffmpeg${RESET}"
-echo -e "${DIV_LINE}\n"
 
 # ===========================
 # Windows User
@@ -75,7 +69,7 @@ fi
 # ===========================
 # Checking dependencies
 [[ -z `which gawk` ]] && error "\"gawk\" is missing! (Ubuntu: sudo apt install gawk)";
-[[ -z `which sed` ]] && error "\"sed\" is missing! (Ubuntu: sudo apt install sed)";
+# [[ -z `which sed` ]] && error "\"sed\" is missing! (Ubuntu: sudo apt install sed)";
 
 WHICH_FFMPEG="$(which "$FFMPEG_BIN" 2>/dev/null)"
 if [[ -z "$WHICH_FFMPEG" ]]; then
@@ -132,7 +126,7 @@ for _type in "${SUPPORTED_PAGE_TYPE[@]}"; do
 done
 
 [[ -n "$PAGE_TYPE" ]] || error "can't find temporary directory of video ${VIDEO_NAME}";
-pushd "$TEMP_WORKSPACE" || error "goto temp workspace ${TEMP_WORKSPACE} failed!";
+pushd "$TEMP_WORKSPACE" >/dev/null || error "goto temp workspace ${TEMP_WORKSPACE} failed!";
 
 # ===========================
 # Getting max number
@@ -186,14 +180,13 @@ title "Generating list file for ffmpeg ...";
 
 if [[ -e "$LIST_FILE" ]]; then
 	echo -e "\nList file ($LIST_FILE) is existed! Do you want to delete it and continue?";
-	confirm || user_abort;
+	confirm || userAbort;
 	rm -f $LIST_FILE || error "could not delete ${LIST_FILE}";
 fi
 
 echo -e "$FFMPEG_LIST_FILE_CONTENT" > "$LIST_FILE" || error "generate list file failed!";
 # sed -e '/^#/d' -e 's:^http.*mp4/:file :g' "../$M3U8_FILE" > "$LIST_FILE" || error "generate list file failed!";
 
-echo -e "";
 title "Concat file $LIST_FILE generated"
 
 # ===========================
@@ -201,7 +194,7 @@ title "Concat file $LIST_FILE generated"
 title "Converting ts file to mp4 files ..."
 if [[ -e "$TARGET_FILE" ]]; then
 	echo -e "\nTarget file is existed! do you want to delete and continue? ($TARGET_FILE)";
-	confirm || user_abort;
+	confirm || userAbort;
 	rm -f $TARGET_FILE || error "could not delete ${TARGET_FILE}";
 fi
 
@@ -215,7 +208,7 @@ fi
 	|| error "ffmpeg convert response exception!"
 title "Converted ${LIST_FILE} file to ${TARGET_FILE}";
 
-popd || error "got back to parent directory failed!";
+popd >/dev/null || error "got back to parent directory failed!";
 
 # ===========================
 # Deleting files
