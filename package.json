@@ -8,7 +8,7 @@
 		"build": "node ./build/build.js",
 		"watch": "node ./build/build.js -w",
 		"dev": "node ./build/build.js -w",
-		"test": "bash ./test/index.sh",
+		"test": "echo test",
 		"test:lint": "eslint ."
 	},
 	"author": "OldDriver",
