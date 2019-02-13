@@ -15,6 +15,9 @@ function getInjectCodes(wrapperName) {
 
 function parseCarNumber(str = '') {
 	const matchers = [
+		// Tokyo hot
+		[/Tokyo[-\s]+Hot[-\s]+(\w{4,6})/i, match => `Tokyo-Hot-${match[1]}`],
+
 		//LOVE series ...
 		[/LOVE[-\s](\d{3,4})/i, match => `LOVE-${match[1]}`],
 
