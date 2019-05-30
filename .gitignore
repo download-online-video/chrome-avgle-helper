@@ -1,4 +1,7 @@
+.vscode
+
 tmp
+
 secret
 secret.*
 
