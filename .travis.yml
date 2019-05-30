@@ -8,8 +8,8 @@ node_js:
   - "node" # latest stable Node.js release
 
 script:
-  - npm run test:lint
   - npm run test
+  - npm run build
 
 notifications:
   email:
