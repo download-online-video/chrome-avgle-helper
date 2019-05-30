@@ -1,9 +1,9 @@
 //@ts-check
-/// <reference path="./index.d.ts" />
+/// <reference path="../index.d.ts" />
 
 window.addEventListener('load', () => {
 	let consoleContainer = document.querySelector('#container');
-	let port = chrome.runtime.connect({ name: "popup" });
+	let port = chrome.runtime.connect({ name: "console" });
 	port.onMessage.addListener(logHtml => {
 		consoleContainer.insertAdjacentHTML('beforeend', String(logHtml));
 		consoleContainer.scrollTo(0, consoleContainer.scrollHeight);

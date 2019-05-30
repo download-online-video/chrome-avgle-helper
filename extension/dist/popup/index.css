@@ -1,0 +1,97 @@
+/*
+This Stylesheet is modified from Chrome extension "The Great Suspender"
+
+Author:   @liamjohnstonnz (Liam Johnston)
+URL:      https://github.com/deanoemcke/thegreatsuspender/blob/master/src/css/popup.css
+License:  GPLv2
+*/
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol';
+    color: #444;
+    padding: 0;
+    margin: 0;
+    min-width: 325px;
+    position: relative;
+    font-size: 15px;
+    background: #fff;
+}
+
+@media (min-resolution: 192dpi) {
+    body {
+        font-weight: 300;
+    }
+}
+
+a {
+    outline: none;
+    color: #3477db;
+}
+
+#main {
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+
+#header {
+    padding: 15px;
+    background: #777;
+    color: #fff;
+}
+
+#header.matched {
+    background: #77b300;
+}
+
+#header a {
+    color: #ffffff;
+}
+
+.group {
+    padding: 10px 0;
+}
+
+.group:not(:last-of-type) {
+    border-bottom: 1px solid #ccc;
+}
+
+.menuOption {
+    line-height: 2em;
+    font-size: 16px;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 0 15px;
+}
+
+.menuOption:hover .optionText {
+    text-decoration: underline;
+}
+
+
+/* dark theme for night lurkers */
+.dark {
+    background: #353535;
+    color: #b8b8b8;
+}
+
+.dark .group {
+    border-color: #555;
+}

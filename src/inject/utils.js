@@ -69,7 +69,7 @@ function $(selector, element) {
  * element.querySelectorAll (result be converted to an array)
  * @param {string} selector
  * @param {HTMLElement|Document} [element]
- * @returns {HTMLElement}
+ * @returns {HTMLElement[]}
  */
 function $$(selector, element) {
 	return Array.from((element || document).querySelectorAll(selector) || []);

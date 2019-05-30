@@ -3,35 +3,27 @@
 
 import { M3U8_PATTERN_ARRAY, VIDEO_PAGE_PATTERN, PROCESSABLE_M3U8_PATTERN } from "./config";
 import { getInjectScript } from "./inject/main-player-page";
-import { info, getLogHistoryHTML, error, bindLogCallback, unbindLogCallback, clearLogHistory } from "./logger";
+import { TabStorage } from "./background/tab-storage";
+import * as log from "./logger";
 
-info('Chrome Avgle Helper background script started!');
-info(`Extension id: ${chrome.runtime.id}`);
+log.info('Chrome Avgle Helper background script started!');
+log.info(`Extension id: ${chrome.runtime.id}`);
 
-// Listening a virtual port named "popup" in chrome.
-//   It is used for communicate with popup window (log transfer)
-chrome.runtime.onConnect.addListener(port => {
-	if (port.name != "popup") {
-		error(`unknown connection with name: ${port.name}`);
-		return port.disconnect();
-	}
-	info('log connection established', 'muted');
-
-	bindLogCallback(log => port.postMessage(log));
-	port.postMessage(getLogHistoryHTML());
-
-	port.onMessage.addListener(msg => {
-		if (msg == 'clear-log') {
-			clearLogHistory();
-			info('log cleared', 'muted');
-			return;
-		}
-	});
-	port.onDisconnect.addListener(() => {
-		unbindLogCallback();
-		info('log connection disconnected', 'muted');
-	});
+// Export functions to global context used for invoking from popup page
+const exportToGloabl = (name, value) => global[name] = value;
+exportToGloabl('__avgle_helper_context', {
+	openConsolePage,
+	queryTabStorage,
 });
+
+
+const tabStorage = new TabStorage();
+chrome.tabs.onRemoved.addListener(tabId => tabStorage.delete(tabId));
+// chrome.tabs.onUpdated.addListener((tabId, info) => info.url && tabStorage.delete(tabId));
+
+registerLoggerConnectForConsolePage();
+registerDownloadCommandMessageListener();
+
 
 // Listening onBeforeSendHeaders for capture m3u8 playlist request
 chrome.webRequest.onBeforeRequest.addListener(details => {
@@ -39,44 +31,39 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 	if (details.tabId < 0)
 		return;
 
-	info([
+	log.info([
 		`Captured m3u8 request`,
 		`  tabId: ${details.tabId}`,
 		`  ${details.method} ${details.url}`
 	].join('\n'));
 
 	chrome.tabs.get(details.tabId, tab => {
-		info(`Tab title: ${tab.title}`);
-		info(`Tab URL: ${tab.url}`);
+		if (!tab)
+			return log.error(`Cannot find tab with id ${details.tabId}`);
+
+		log.info(`Tab title: ${tab.title}`);
+		log.info(`Tab URL: ${tab.url}`);
 
 		let matchedPage = VIDEO_PAGE_PATTERN.find(it => it.pattern.test(tab.url));
 		if (!matchedPage)
-			return info(`Ignore: URL of tab is not matched in VIDEO_PAGE_PATTERN`);
+			return log.info(`Ignore: URL of tab is not matched in VIDEO_PAGE_PATTERN`);
 
 		let m3u8URL = details.url;
 		let m3u8URLBase64 = btoa(m3u8URL);
 
 		let matchedProcesser = PROCESSABLE_M3U8_PATTERN.find(it => it.pattern.test(m3u8URL));
 		if (!matchedProcesser)
-			return info(`Ignore: URL of m3u8 request is not matched with any pattern in PROCESSABLE_M3U8_PATTERN`);
+			return log.info(`Ignore: URL of m3u8 request is not matched with any pattern in PROCESSABLE_M3U8_PATTERN`);
 
-
-		// let xhr = new XMLHttpRequest();
-		// xhr.open('GET', m3u8URL);
-		// xhr.onload = () => {
-		// 	if (xhr.readyState != 4 || xhr.status != 200)
-		// 		return onXHRError();
-		// };
-		// xhr.onerror = onXHRError;
-		// xhr.send();
-
-		injectScript(null, {
+		const context = {
 			m3u8URLBase64,
 			tabURL: tab.url,
 			pageType: matchedPage.type,
 			needDecode: matchedProcesser.base64Encoded
-		});
+		};
+		tabStorage.update(tab.id, context);
 
+		injectScript(null, context);
 		function injectScript(error, parameters = {}) {
 			if (error) {
 				if (typeof error != 'string')
@@ -86,9 +73,14 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 
 			chrome.tabs.executeScript(details.tabId, {
 				code: getInjectScript(parameters)
-			}, () => { info('Inject script success!'); });
+			}, () => { log.info('Inject script success!'); });
 		}
 
+		// let xhr = new XMLHttpRequest();
+		// xhr.open('GET', m3u8URL);
+		// xhr.onload = () => { if (xhr.readyState != 4 || xhr.status != 200) return onXHRError(); };
+		// xhr.onerror = onXHRError;
+		// xhr.send();
 		// /** @param {ErrorEvent} [errorEvent]  */
 		// function onXHRError(errorEvent) {
 		// 	let message = ['Request m3u8 file failed!'];
@@ -96,7 +88,6 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 		// 	message.push(`  URL: ${m3u8URL}`);
 		// 	message.push(`  ReadyState: ${xhr.readyState}`);
 		// 	message.push(`  Status: ${xhr.status} (${xhr.statusText})`);
-
 		// 	let response = String(xhr.responseText), responseLength = response.length;
 		// 	if (response.length > 100)
 		// 		response = response.slice(0, 100) + `... (length: ${responseLength})`;
@@ -107,10 +98,51 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 
 }, { urls: M3U8_PATTERN_ARRAY });
 
-// Add listener for opening console
-// https://developer.chrome.com/extensions/browserAction#event-onClicked
-chrome.browserAction.onClicked.addListener(() => {
-	const url = chrome.extension.getURL('dist/popup.html');
+/**
+ * Listen a virtual port named "console" in chrome.
+ * It is used for communicate with console window (log transfer)
+ */
+function registerLoggerConnectForConsolePage() {
+	chrome.runtime.onConnect.addListener(port => {
+		if (port.name != "console") {
+			log.error(`unknown connection with name: ${port.name}`);
+			return port.disconnect();
+		}
+		log.info('log connection established', 'muted');
+
+		log.bindLogCallback(log => port.postMessage(log));
+		port.postMessage(log.getLogHistoryHTML());
+		port.onMessage.addListener(msg => {
+			if (msg == 'clear-log') {
+				log.clearLogHistory();
+				log.info('log cleared', 'muted');
+				return;
+			}
+		});
+		port.onDisconnect.addListener(() => {
+			log.unbindLogCallback();
+			log.info('log connection disconnected', 'muted');
+		});
+	});
+}
+
+/**
+ * Listen a message listener for receive download command from video page.
+ */
+function registerDownloadCommandMessageListener() {
+	chrome.runtime.onMessage.addListener((message, sender, response) => {
+		if (!message || !sender || !sender.tab || !sender.tab.id)
+			return;
+		const { tab } = sender;
+
+		log.info(`Video name: ${message.carNumber}`);
+		tabStorage.update(tab.id, { carNumber: message.carNumber });
+	});
+}
+
+function queryTabStorage(tabId) { return tabStorage.get(tabId); }
+function openConsolePage() {
+	const url = chrome.extension.getURL('dist/console/index.html');
 	chrome.tabs.query({ url }, tabs => {
 		// console window is existed
 		if (tabs.length > 0) {
@@ -126,7 +158,5 @@ chrome.browserAction.onClicked.addListener(() => {
 			}, noop);
 		});
 	});
-});
-
-/** An empty callback */
-function noop() { }
+	function noop() { }
+}

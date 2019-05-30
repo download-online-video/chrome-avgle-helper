@@ -1,13 +1,16 @@
 name: Chrome avgle helper
 src:
     base: src
-    assets: []
+    assets:
+        - "popup/index.css"
     pages:
-        - "popup.html"
+        - "console/index.html"
+        - "popup/index.html"
     scripts:
         - "index.js"
         - "inject/main-normal-page.js"
-        - "popup.js"
+        - "console/index.js"
+        - "popup/index.js"
     styles:
 dist:
     base: extension/dist

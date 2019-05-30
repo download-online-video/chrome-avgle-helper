@@ -96,6 +96,8 @@ function main(utils, paramters = {}) {
 		injectContainer.appendChild(injectBox);
 	}
 
+	chrome.runtime.sendMessage({ carNumber });
+
 	// End of injection process
 	// =======================================
 	//#region Helper function
