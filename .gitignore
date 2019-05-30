@@ -1,4 +1,6 @@
 tmp
+secret
+secret.*
 
 # sourcemaps
 extension/dist/*.map

@@ -15,9 +15,9 @@ HTTP_REFERER_XVIDEOS="https://www.xvideos.com";
 ENABLE_REFERER=true
 
 # The idea why add user-agent header is from fork repository by [mywarr](https://github.com/mywarr)
-# And the following User-Agent is reference from: (Last updated: Tue, 12 Jun 2018 18:38:12 +0000)
+# And the following User-Agent is reference from: (Last Updated: Thu, 30 May 2019 09:33:12 +0000)
 # https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
-HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36";
 
 # wget/aria2c binary file
 # it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
@@ -26,7 +26,8 @@ ARIA2C_BIN="aria2c";
 DOWNLOADER_TYPE="wget"; # or "aria2c"
 
 ARIA2C_OPT_J=""; # https://aria2.github.io/manual/en/html/aria2c.html#cmdoption-j
-DOWNLOAD_LOG="avgle-download.log";
+DOWNLOAD_LOG="aria2.log";
+SELF_LOG="avgle-downloader.log"
 
 SUPPORTED_PAGE_TYPE=(avgle xvideos);
 
