@@ -2,7 +2,7 @@
 /// <reference path="./index.d.ts" />
 
 import { M3U8_PATTERN_ARRAY, VIDEO_PAGE_PATTERN, PROCESSABLE_M3U8_PATTERN } from "./config";
-import { getInjectScript } from "./inject_to_player";
+import { getInjectScript } from "./inject/main-player-page";
 import { info, getLogHistoryHTML, error, bindLogCallback, unbindLogCallback, clearLogHistory } from "./logger";
 
 info('Chrome Avgle Helper background script started!');
@@ -77,12 +77,15 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 			needDecode: matchedProcesser.base64Encoded
 		});
 
-		function injectScript(err, parameters = {}) {
-			if (err && (typeof err != 'string'))
-				err = 'message' in err ? `${err.message}\n${err.stack}` : String(err);
+		function injectScript(error, parameters = {}) {
+			if (error) {
+				if (typeof error != 'string')
+					error = 'message' in error ? `${error.message}\n${error.stack}` : String(error);
+				parameters.error = error;
+			}
 
 			chrome.tabs.executeScript(details.tabId, {
-				code: getInjectScript(err, parameters)
+				code: getInjectScript(parameters)
 			}, () => { info('Inject script success!'); });
 		}
 

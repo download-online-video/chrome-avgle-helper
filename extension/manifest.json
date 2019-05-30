@@ -15,7 +15,7 @@
 		"matches": ["*://avgle.com/*"],
 		"run_at": "document_end",
 		"all_frames": false,
-		"js": ["dist/inject_to_normal.js"]
+		"js": ["dist/inject/main-normal-page.js"]
 	}],
 	"icons": {
 		"128": "icons/128.png"

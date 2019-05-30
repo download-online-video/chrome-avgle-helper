@@ -6,7 +6,7 @@ src:
         - "popup.html"
     scripts:
         - "index.js"
-        - "inject_to_normal.js"
+        - "inject/main-normal-page.js"
         - "popup.js"
     styles:
 dist:

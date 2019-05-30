@@ -6,7 +6,7 @@ secret
 secret.*
 
 # sourcemaps
-extension/dist/*.map
+*.map
 
 # Logs
 logs
