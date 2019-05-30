@@ -1,5 +1,6 @@
 let exportFunctions = {
 	getInjectCodes,
+	escapeHTML,
 	parseCarNumber
 };
 export default exportFunctions;
@@ -13,10 +14,22 @@ function getInjectCodes(wrapperName) {
 	return result;
 }
 
+function escapeHTML(text) {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
 function parseCarNumber(str = '') {
 	const matchers = [
 		// Tokyo hot
 		[/Tokyo[-\s]+Hot[-\s]+(\w{4,6})/i, match => `Tokyo-Hot-${match[1]}`],
+
+		// AXDVD-0000R
+		[/AXDVD[-\s+](\d{3,5}\w)/i, match => `AXDVD-${match[1]}`],
 
 		//LOVE series ...
 		[/LOVE[-\s](\d{3,4})/i, match => `LOVE-${match[1]}`],
@@ -25,7 +38,7 @@ function parseCarNumber(str = '') {
 		[/10musume[-_\s](\d{6})[-_\s](\d{2})/i, match => `10musume-${match[1]}-${match[2]}`],
 
 		// fc2-ppv-10045 or fc2ppv-10056 ...
-		[/fc2[\s\-_]?ppv[\s\-_]?(\d+)/i, match => `FC2-PPV-${match[1]}` ],
+		[/fc2[\s\-_]?ppv[\s\-_]?(\d+)/i, match => `FC2-PPV-${match[1]}`],
 
 		// S-Cute Ava #1
 		[/S-Cute\s+(\w+)\s+#(\d+)/i, match => `S-Cute-${match[1]}-${match[2]}`],
