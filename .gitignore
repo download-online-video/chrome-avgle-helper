@@ -1,3 +1,6 @@
+labs/*
+!labs/example.sh
+
 .vscode
 
 tmp

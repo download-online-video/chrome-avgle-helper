@@ -4,12 +4,13 @@ src:
     assets:
         - "popup/index.css"
         - "settings/index.css"
+        - "downloader.sh"
     pages:
         - "console/index.html"
         - "popup/index.html"
         - "settings/index.html"
     scripts:
-        - "index.js"
+        - "background/index.js"
         - "inject/main-normal-page.js"
         - "console/index.js"
         - "popup/index.js"

@@ -1,15 +1,15 @@
 {
 	"manifest_version": 2,
 	"name": "Avgle Helper",
-	"version": "2.1.1",
+	"version": "3.0.0",
 	"description": "A Chrome extension",
 	"background": {
-		"scripts": ["dist/index.js"],
+		"scripts": ["dist/background/index.js"],
 		"persistent": true
 	},
 	"options_page": "dist/settings/index.html",
 	"browser_action": {
-		"default_icon": "icons/128.png",
+		"default_icon": "icons/128-disabled.png",
 		"default_title": "Avgle Helper Menu",
 		"default_popup": "dist/popup/index.html"
 	},
@@ -26,6 +26,7 @@
 		"tabs",
 		"notifications",
 		"webRequest",
+		"downloads",
 		"*://*/*"
 	]
 }
