@@ -4,14 +4,10 @@
 
 A Chrome extension for a free community  一个给司机用的Chrome插件
 
-## 2.x.x Breaking Change
+## 🔊 3.x.x is being developed
 
-**Please reinstall `AvgleDownloader` and `Avgle` scripts!!** 请重装这个两个脚本
-
-- Add support for **xvideos**
-- Add support for latest Avgle changes (base64 encoded m3u8 file) 更新了最近 Avgle 的变动
-- Put the temporary files generated during download into a separate workspace directory. 独立的临时文件存放目录 
-- Simpilfy download commands. 下载命令更简单了
+Version `3.x.x` includes new extension's UI and better experience, but is is currently unstable and being developed.   
+You can switch branch to *3.x.x* if you want expericence it in advance.
 
 
 ## Notice 注意
@@ -60,6 +56,7 @@ brew install aria2 # OS X
 If you are interested in fixing issues and improving codes to this repository, you can get references from these places:
 
 - [Chrome extension documents](https://developer.chrome.com/extensions/devguide)
+- [M3U8](https://developer.apple.com/documentation/http_live_streaming/example_playlists_for_http_live_streaming/video_on_demand_playlist_construction)
 - [aria2 documents](https://aria2.github.io/manual/en/html/index.html)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 

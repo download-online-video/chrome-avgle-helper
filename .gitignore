@@ -1,6 +1,7 @@
 .vscode
 
 tmp
+.tmp-*
 
 secret
 secret.*
