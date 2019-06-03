@@ -13,6 +13,7 @@ log.info(`Extension id: ${chrome.runtime.id}`);
 const exportToGloabl = (name, value) => global[name] = value;
 exportToGloabl('__avgle_helper_context', {
 	openConsolePage,
+	openSettingsPage,
 	queryTabStorage,
 });
 
@@ -159,4 +160,9 @@ function openConsolePage() {
 		});
 	});
 	function noop() { }
+}
+
+function openSettingsPage() {
+	chrome.tabs.create({ url: chrome.extension.getURL(`dist/settings/index.html`) });
+	// chrome.tabs.create({ url: `chrome://extensions/?options=${chrome.runtime.id}` });
 }

@@ -3,14 +3,17 @@ src:
     base: src
     assets:
         - "popup/index.css"
+        - "settings/index.css"
     pages:
         - "console/index.html"
         - "popup/index.html"
+        - "settings/index.html"
     scripts:
         - "index.js"
         - "inject/main-normal-page.js"
         - "console/index.js"
         - "popup/index.js"
+        - "settings/index.js"
     styles:
 dist:
     base: extension/dist

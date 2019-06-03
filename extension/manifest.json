@@ -7,6 +7,7 @@
 		"scripts": ["dist/index.js"],
 		"persistent": true
 	},
+	"options_page": "dist/settings/index.html",
 	"browser_action": {
 		"default_icon": "icons/128.png",
 		"default_title": "Avgle Helper Menu",

@@ -46,6 +46,7 @@
 		const itemId = this.getAttribute('data-id');
 		switch (itemId) {
 			case 'console': context.openConsolePage(); break;
+			case 'settings': context.openSettingsPage(); break;
 			default:
 		}
 	}
