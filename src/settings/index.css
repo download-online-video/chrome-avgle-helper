@@ -66,6 +66,9 @@ html, body {
 	height: 40px;
 	margin: 0 0 5px 0;
 	padding: 4px 10px;
+
+	outline: none;
+	border: 1px solid #aaa;
 	border-radius: 5px;
 }
 
@@ -76,4 +79,23 @@ html, body {
 #main .settings-group .settings:hover input,
 #main .settings-group .settings:hover textarea {
 	background: #EEF7FD;
+
+	outline: none;
+	border-color: #80C1F0;
+}
+
+.button {
+	font-size: 20px;
+    padding: 10px 24px;
+    background: #2393E5;
+    border: 1px solid #EEF7FD;
+    border-radius: 5px;
+    outline: none;
+	color: #fff;
+	cursor: pointer;
+}
+.button:hover {
+    background: #fff;
+	color: #2393E5;
+	border-color: #2393E5;
 }

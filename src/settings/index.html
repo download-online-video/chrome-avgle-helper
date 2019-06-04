@@ -20,10 +20,10 @@
 				<h2>User Interface</h2>
 				<div class="settings">
 					<h3>Language</h3>
-					<select>
-						<option>简体中文</option>
-						<option>繁體中文</option>
-						<option>English</option>
+					<select data-bind="language">
+						<option value="en">English</option>
+						<option value="zh-Hans">简体中文</option>
+						<option value="zh-Hant">繁體中文</option>
 					</select>
 				</div>
 			</div>
@@ -31,39 +31,43 @@
 				<h2>Download Options</h2>
 				<div class="settings">
 					<h3>Max concurrent downloads</h3>
-					<select>
-						<option>1</option>
-						<option>2</option>
-						<option>3</option>
-						<option>4</option>
-						<option>5</option>
-						<option>6</option>
-						<option>7</option>
-						<option>8</option>
-						<option>9</option>
-						<option>10</option>
+					<select data-bind="concurrentDownloads">
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+						<option value="8">8</option>
+						<option value="9">9</option>
+						<option value="10">10</option>
 					</select>
 				</div>
 				<div class="settings">
 					<h3>Delete temporary files</h3>
-					<select>
-						<option>Ask</option>
-						<option>Yes</option>
-						<option>No</option>
+					<select data-bind="deleteTempFiles">
+						<option value="ask">Ask</option>
+						<option value="true">Yes</option>
+						<option value="false">No</option>
 					</select>
 				</div>
 				<div class="settings">
 					<h3>Delete downloader script</h3>
-					<select>
-						<option>Ask</option>
-						<option>No</option>
-						<option>Yes</option>
+					<select data-bind="deleteDownloader">
+						<option value="ask">Ask</option>
+						<option value="true">Yes</option>
+						<option value="false">No</option>
 					</select>
 				</div>
 				<div class="settings">
 					<h3>Proxy for downloader</h3>
-					<input type="text" placeholder="http://127.0.0.1:1080" />
+					<input data-bind="proxy" type="url" placeholder="http://127.0.0.1:1080" />
 				</div>
+			</div>
+
+			<div class="settings-group">
+				<button class="button" id="btnSave">Save</button>
 			</div>
 		</div>
 	</div>
