@@ -1,3 +1,8 @@
+type SystemInfo = {
+	isWin: boolean;
+	is64bit: boolean;
+	defaultLanguage: 'en' | 'zh-Hans' | 'zh-Hant';
+};
 
 type LogItem = {
 	/**
