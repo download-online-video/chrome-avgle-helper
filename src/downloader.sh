@@ -1,30 +1,48 @@
 #!/usr/bin/env bash
 
+UPDATE_AT="2019-06-06";
+
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Video Config >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 if [[ "$CFG_USE_ENV_VARIABLES" != true ]]; then
 	CFG_RANDOM_ID='{{ CFG_RANDOM_ID }}';
 	CFG_VIDEO_NAME='{{ CFG_VIDEO_NAME }}';
-	CFG_M3U8_URL_BASE64='{{ CFG_M3U8_URL_BASE64 }}';
+	CFG_M3U8_URL='{{ CFG_M3U8_URL }}';
 	CFG_DECODE_M3U8='{{ CFG_DECODE_M3U8 }}';
 	CFG_PAGE_TYPE='{{ CFG_PAGE_TYPE }}';
 	CFG_MAX_CONCURRENT_DL='{{ CFG_MAX_CONCURRENT_DL }}';
+	CFG_USER_AGENT='{{ CFG_USER_AGENT }}';
 fi
+
+# Default config
+DEFAULT_CFG_DECODE_M3U8="false";
+DEFAULT_CFG_MAX_CONCURRENT_DL="5";
+# The idea why add user-agent header is from fork repository by [mywarr](https://github.com/mywarr)
+# And the following User-Agent is reference from: (Last Updated: Thu, 30 May 2019 09:33:12 +0000)
+# https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
+DEFAULT_CFG_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36";
+
+# Use default values if variables are unset
+[[ -n "$CFG_DECODE_M3U8" ]] || CFG_DECODE_M3U8="$DEFAULT_CFG_DECODE_M3U8";
+[[ -n "$CFG_MAX_CONCURRENT_DL" ]] || CFG_MAX_CONCURRENT_DL="$DEFAULT_CFG_MAX_CONCURRENT_DL";
+[[ -n "$CFG_USER_AGENT" ]] || CFG_USER_AGENT="$DEFAULT_CFG_USER_AGENT";
+
+# Check required variables
+function checkRequiredVariables() {
+	[[ -n "$CFG_M3U8_URL" ]] || error "variable \"CFG_M3U8_URL\" is missing!";
+	[[ -n "$CFG_VIDEO_NAME" ]] || error "variable \"CFG_VIDEO_NAME\" is missing!";
+}
+
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Script Config >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-UPDATE_AT="2019-06-03";
 
 # Windows library files located in
 WINDOWS_LIBS_DIR="$HOME/bin";
-
-# The idea why add user-agent header is from fork repository by [mywarr](https://github.com/mywarr)
-# And the following User-Agent is reference from: (Last Updated: Thu, 30 May 2019 09:33:12 +0000)
-# https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
-HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36";
 
 # Add this referer for fix forbidden download action on CDN
 HTTP_REFERER="https://avgle.com"
@@ -255,7 +273,7 @@ function _download() {
 		[[ "$1" == with_referer ]] && referer="--referer=$HTTP_REFERER";
 
 		generateDownloadListForAria2FromStdin "$3" <<< "$2" |
-			"$ARIA2C_BIN" "$referer" --user-agent="$HTTP_USER_AGENT" \
+			"$ARIA2C_BIN" "$referer" --user-agent="$CFG_USER_AGENT" \
 				--show-files --continue=true --input-file=- "$ARIA2C_OPT_J" \
 				--log="$DOWNLOAD_LOG" --log-level=info;
 		return $?;
@@ -263,7 +281,7 @@ function _download() {
 	# wget
 	if [[ "$1" == with_referer ]]; then ref1="--header"; ref2="Referer: $HTTP_REFERER"; fi
 	if [[ -n "$3" ]]; then  out1="-O"; out2="$3"; fi
-	"$WGET_BIN" "$ref1" "$ref2" --header "User-Agent: $HTTP_USER_AGENT" "$out1" "$out2" $2;
+	"$WGET_BIN" "$ref1" "$ref2" --header "User-Agent: $CFG_USER_AGENT" "$out1" "$out2" $2;
 }
 
 # Usage: betterDownloader <description> <urlArray> [targetFile]
@@ -289,6 +307,31 @@ function betterDownloader() {
 		_download no_referer "$2" "$3" || downloadFailed "$1";
 	fi
 }
+
+function isValidM3U8() {
+	# It must contain at least two parts: `#EXTM3U` and `#EXT-X-ENDLIST`
+	# c=or(c,1) is equals like c|=1 in c-language
+	gawk '/^#EXTM3U/{c=or(c,1)} /^#EXT-X-ENDLIST/{c=or(c,2)} END{exit(c==3?0:1)}' "$1";
+}
+function isRandomIdInM3U8() {
+	gawk -vrid="$CFG_RANDOM_ID" 'BEGIN{c=1}/^#EXT-X-RANDOM-ID/{c=index($0,rid)>0?0:1;}END{exit(c)}' "$1";
+}
+function insertRandomIdIntoM3U8() {
+	gawk -vrid="$CFG_RANDOM_ID" '{print}END{print("#EXT-X-RANDOM-ID:" rid)}' "$1";
+}
+function deleteInvalidM3U8File() {
+	[[ -f "$1" ]] || return;
+
+	isValidM3U8 "$1";
+	if [[ $? == 0 ]]; then
+		isRandomIdInM3U8 "$1" && return;
+		warn "deleted outdated m3u8 file \"$1\" (without random id: $CFG_RANDOM_ID)";
+	else
+		warn "deleted invalid m3u8 file \"$1\" (without #EXTM3U or #EXT-X-ENDLIST)";
+	fi
+	rm "$1" || error "could not delete invalid m3u8 file";
+}
+
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -311,17 +354,16 @@ function isSupportedPageType() {
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Main Function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+checkRequiredVariables;
 printBanner;
 resolveDependencies;
 
 ARIA2C_OPT_J="--max-concurrent-downloads=${CFG_MAX_CONCURRENT_DL}";
 
-[[ -n "$CFG_VIDEO_NAME" ]] || error "option \"CFG_VIDEO_NAME\" is missing!";
-[[ -n "$CFG_M3U8_URL_BASE64" ]] || error "option \"CFG_M3U8_URL_BASE64\" is missing!";
 isSupportedPageType "$CFG_PAGE_TYPE" || error "invalid type: \"${CFG_PAGE_TYPE}\" ";
 
 echo -e "${GREY}Video name:${DIM} ${CFG_VIDEO_NAME}${RESET}";
-echo -e "${GREY}Base64 of m3u8 URL:${DIM} ${CFG_M3U8_URL_BASE64}${RESET}";
+echo -e "${GREY}Video m3u8 URL:${DIM} ${CFG_M3U8_URL}${RESET}";
 
 printf "${GREY}Extra options:${DIM}";
 [[ "$CFG_DECODE_M3U8" == true ]] && printf " decode";
@@ -332,24 +374,13 @@ printf "${RESET}\n";
 # fix HTTP referer
 [[ "$CFG_PAGE_TYPE" == xvideos ]] && HTTP_REFERER="$HTTP_REFERER_XVIDEOS";
 
-
-echo "$CFG_M3U8_URL_BASE64" | base64 --decode >/dev/null || error "input m3u8 url is invalid!";
-M3U8_URL=`echo "$CFG_M3U8_URL_BASE64" | base64 --decode`
-echo -e "${GREY}Decoded m3u8 URL:${DIM} ${M3U8_URL}${RESET}";
-
 TEMP_WORKSPACE=".tmp-${CFG_PAGE_TYPE}~${CFG_VIDEO_NAME}";
 if [[ ! -d "$TEMP_WORKSPACE" ]]; then
 	mkdir "$TEMP_WORKSPACE" || error "create temp workspace failed: $TEMP_WORKSPACE";
 fi
 
 M3U8_FILE="${CFG_VIDEO_NAME}.m3u8"
-if [[ -f "$M3U8_FILE" ]]; then
-	# TODO: check CFG_RANDOM_ID in m3u8
-	if [[ ! -s "$M3U8_FILE" ]]; then # clean invalid m3u8
-		rm "$M3U8_FILE" || error "could not delete invalid m3u8 file";
-		warn "deleted invalid m3u8 file \"$M3U8_FILE\"";
-	fi
-fi
+deleteInvalidM3U8File "$M3U8_FILE";
 
 if [[ ! -f "${M3U8_FILE}" ]]; then
 	title "downloading m3u8 file ...";
@@ -361,7 +392,7 @@ if [[ ! -f "${M3U8_FILE}" ]]; then
 	OLD_DOWNLOAD_LOG="${DOWNLOAD_LOG}";
 	DOWNLOAD_LOG="${TEMP_WORKSPACE}/${OLD_DOWNLOAD_LOG}";
 
-	betterDownloader 'm3u8 file' "$M3U8_URL" "$DOWNLOAD_TARGET_FILE";
+	betterDownloader 'm3u8 file' "$CFG_M3U8_URL" "$DOWNLOAD_TARGET_FILE";
 	success "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
 
 	# restore log location
@@ -374,6 +405,12 @@ if [[ ! -f "${M3U8_FILE}" ]]; then
 		rm "$DOWNLOAD_TARGET_FILE" || warn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
 		success "decoded to $M3U8_FILE";
 	fi
+
+	# insert randomId
+	M3U8_CONTENT="$(insertRandomIdIntoM3U8 "$M3U8_FILE")";
+	echo "$M3U8_CONTENT" > "$M3U8_FILE" ||
+		error "insert random id \"$CFG_RANDOM_ID\" into $M3U8_FILE failed!";
+	success "inserted random id \"$CFG_RANDOM_ID\" into $M3U8_FILE"
 fi
 
 # get total file count:
@@ -390,7 +427,7 @@ if [[ "$CFG_PAGE_TYPE" == xvideos ]]; then
 
 	FILE_NAME_PREFIX="${LAST_FRAGMENT%%p*}p";
 	FILE_NAME_SUFFIX=".ts";
-	DOWNLOAD_URL_PREFIX="${M3U8_URL%/*}";
+	DOWNLOAD_URL_PREFIX="${CFG_M3U8_URL%/*}";
 	DOWNLOAD_URL_SUFFIX="?${LAST_FRAGMENT_URL##*\?}";
 	# echo "$DOWNLOAD_URL_PREFIX" " <...> " "$DOWNLOAD_URL_SUFFIX";
 

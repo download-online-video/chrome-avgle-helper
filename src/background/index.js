@@ -64,6 +64,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 			return log.info(`Ignore: URL of m3u8 request is not matched with any pattern in PROCESSABLE_M3U8_PATTERN`);
 
 		const context = {
+			m3u8URL,
 			m3u8URLBase64,
 			tabURL: tab.url,
 			pageType: matchedPage.type,
@@ -173,10 +174,11 @@ function downloadVideoDownloaderScript(tabInfo) {
 	const context = {
 		CFG_RANDOM_ID: uuid(),
 		CFG_VIDEO_NAME: tabInfo.carNumber,
-		CFG_M3U8_URL_BASE64: tabInfo.m3u8URLBase64,
+		CFG_M3U8_URL: tabInfo.m3u8URL,
 		CFG_DECODE_M3U8: tabInfo.needDecode ? 'true' : 'false',
 		CFG_PAGE_TYPE: tabInfo.pageType,
 		CFG_MAX_CONCURRENT_DL: 5,
+		CFG_USER_AGENT: navigator.userAgent,
 	};
 	const fileName = `download-${tabInfo.carNumber}.sh`;
 	const bash = bashTemplate.compile(context);

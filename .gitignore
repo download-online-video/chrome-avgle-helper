@@ -1,5 +1,5 @@
-labs/*
-!labs/example.sh
+test/labs/*
+!test/labs/example.sh
 
 .vscode
 
