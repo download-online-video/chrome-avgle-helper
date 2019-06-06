@@ -1,7 +1,13 @@
+// eslint-disable-next-line no-unused-vars
+import { ContextModules } from '../background/types';
+
 (function main() {
 	const background = chrome.extension.getBackgroundPage();
 	const context = background && background.__avgle_helper_context;
 	if (!context) return;
+
+	/** @type {ContextModules} */
+	const modules = context.modules;
 
 	const $header = $('#header');
 	const $status = $('#status');
@@ -10,33 +16,48 @@
 	let tab = null;
 	let tabInfo = null;
 
-	getCurrentTabStorage();
-	bindItemClickListener();
-	showContents();
+	getCurrentTabStorage()
+		.then(() => bindErrorNotification())
+		.then(() => bindItemClickListener())
+		.then(() => showMenu());
 
 	function getCurrentTabStorage() {
-		chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-			if (tabs.length <= 0) return;
-
-			tab = tabs[0];
+		return getCurrentTab().then(_tab => {
+			if (!_tab) return;
+			tab = _tab;
 			tabInfo = context.queryTabStorage(tab.id);
 			if (tabInfo.carNumber) {
 				$header.className += ' matched';
 				$status.innerText = tabInfo.carNumber;
 				$('#groupMatchedVideo').style.display = 'block';
+			} else {
+				$('#noVideoDetetced').style.display = 'block';
 			}
 		});
 	}
+	function getCurrentTab() {
+		return new Promise(resolve =>
+			chrome.tabs.query({ active: true, currentWindow: true }, tabs =>
+				resolve(tabs[0])));
+	}
 
+	function bindErrorNotification() {
+		const errors = modules.log.getErrorLogItems();
+		if (!errors.length) return;
+
+		const $error = $('#hasError');
+		$error.style.display = 'block';
+		$error.innerText = `${errors.length} internal error have occurred`;
+		$error.addEventListener('click', () => context.openConsolePage());
+	}
 	function bindItemClickListener() {
 		$$('.menuOption').forEach(item => {
 			item.addEventListener('click', onClickItem);
 		});
-
 	}
 
-	function showContents() {
-		setTimeout(() => $('#main').style.opacity = 1, 200);
+	function showMenu() {
+		$('#main').style.opacity = 1;
 	}
 
 	/**

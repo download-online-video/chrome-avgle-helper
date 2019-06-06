@@ -13,8 +13,8 @@ let logCallback = undefined;
 /**
  * @param {string} content
  */
-function push2history(content, type ="info") {
-	let ctx = { t: Date.now(), c: content, type};
+function push2history(content, type = "info") {
+	let ctx = { t: Date.now(), c: content, type };
 	if (history.length >= MAX_HISTORY)
 		history = history.slice(MAX_HISTORY - AVG_HISTORY);
 	history.push(ctx);
@@ -76,4 +76,10 @@ export function clearLogHistory() {
 	history = [];
 }
 
-export function getLogHistoryHTML() { return history.map(logItem2html).join('\n'); }
+export function getLogHistoryHTML() {
+	return history.map(logItem2html).join('\n');
+}
+
+export function getErrorLogItems() {
+	return history.filter(it => it.type === 'error');
+}

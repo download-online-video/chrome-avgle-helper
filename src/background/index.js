@@ -149,29 +149,37 @@ function registerDownloadCommandMessageListener() {
 }
 
 function queryTabStorage(tabId) { return tabStorage.get(tabId); }
+
 function openConsolePage() {
-	const url = chrome.extension.getURL('dist/console/index.html');
-	chrome.tabs.query({ url }, tabs => {
-		// console window is existed
-		if (tabs.length > 0) {
-			const tab = tabs[0];
-			chrome.tabs.update(tab.id, { active: true }, noop);
-			return;
-		}
-		// create new one
-		chrome.tabs.create({ url, active: false }, tab => {
+	openExtensionInternalURI('dist/console/index.html', { active: false })
+		.then(tab => {
 			chrome.windows.create({
 				tabId: tab.id,
 				type: 'popup', focused: true, width: 800, height: 400,
-			}, noop);
+			}, (win) => { });
 		});
-	});
-	function noop() { }
 }
-
 function openSettingsPage() {
-	chrome.tabs.create({ url: chrome.extension.getURL(`dist/settings/index.html`) });
+	openExtensionInternalURI(`dist/settings/index.html`);
 	// chrome.tabs.create({ url: `chrome://extensions/?options=${chrome.runtime.id}` });
+}
+/**
+ * @param {string} uri
+ * @param {chrome.tabs.CreateProperties} [options]
+ * @returns {Promise<chrome.tabs.Tab>}
+ */
+function openExtensionInternalURI(uri, options) {
+	const url = chrome.extension.getURL(uri);
+	return new Promise(resolve => {
+		chrome.tabs.query({ url }, tabs => {
+			if (tabs.length > 0) {
+				const tab = tabs[0];
+				chrome.tabs.update(tab.id, { active: true }, resolve);
+				return;
+			}
+			chrome.tabs.create(Object.assign({ url }, options || {}), resolve);
+		});
+	})
 }
 
 function downloadVideoDownloaderScript(tabInfo) {
