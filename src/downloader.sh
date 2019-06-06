@@ -13,6 +13,7 @@ if [[ "$CFG_USE_ENV_VARIABLES" != true ]]; then
 	CFG_PAGE_TYPE='{{ CFG_PAGE_TYPE }}';
 	CFG_MAX_CONCURRENT_DL='{{ CFG_MAX_CONCURRENT_DL }}';
 	CFG_USER_AGENT='{{ CFG_USER_AGENT }}';
+	CFG_PROXY='{{ CFG_PROXY }}';
 fi
 
 # Default config
@@ -247,6 +248,27 @@ function generateBetterDownloadQueue() {
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Network Functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+function normalizeURL() {
+	echo "$1" | gawk '{
+		gsub(/^[ \t\r\n]+/, "", $0);
+		gsub(/[ \t\r\n]+$/, "", $0);
+		if(length($0) > 0 && index($0, ".") > 0) {
+			if(match($0, /^[a-zA-Z]+:\/\//)) printf("%s", $0);
+			else printf("http://%s", $0);
+		}
+	}';
+}
+function setupProxy() {
+	[[ -z "$CFG_PROXY" ]] && return;
+
+	local proxyURL="$(normalizeURL "$CFG_PROXY")";
+	[[ -z "$proxyURL" ]] && error "invalid proxy url: ${CFG_PROXY}";
+
+	export http_proxy="$proxyURL";
+	export https_proxy="$proxyURL";
+	success 'export `http_proxy` and `https_proxy` as '"$proxyURL";
+}
+
 function cleanDownloadLogOnce() {
 	[[ -n "$__CLEANED_UP_LOG" ]] && return;
 	[[ -f "$DOWNLOAD_LOG" ]] && rm "$DOWNLOAD_LOG";
@@ -356,6 +378,7 @@ function isSupportedPageType() {
 
 checkRequiredVariables;
 printBanner;
+setupProxy;
 resolveDependencies;
 
 ARIA2C_OPT_J="--max-concurrent-downloads=${CFG_MAX_CONCURRENT_DL}";
