@@ -6,6 +6,7 @@ import { getInjectScript } from "../inject/main-player-page";
 import { TabStorage } from "./tab-storage";
 import { BashTemplate } from "./bash-template";
 import { uuid } from "./uuid";
+import * as settings from "./settings-storage";
 import * as log from "../logger";
 
 log.info('Chrome Avgle Helper background script started!');
@@ -18,6 +19,12 @@ exportToGloabl('__avgle_helper_context', {
 	openSettingsPage,
 	queryTabStorage,
 	downloadVideoDownloaderScript,
+
+	// export modules
+	modules: {
+		settings,
+		log,
+	},
 });
 
 
@@ -28,6 +35,8 @@ chrome.tabs.onActivated.addListener(onTabActivated);
 const bashTemplate = new BashTemplate(chrome.extension.getURL('dist/downloader.sh'));
 const getBashTemplateUpdateAt = () => bashTemplate.matchString(/UPDATE_AT=['"](\S+)['"]/, 1);
 bashTemplate.init(() => log.info(`Loaded bash template (update at: ${getBashTemplateUpdateAt()})`));
+
+settings.storage.init();
 
 registerLoggerConnectForConsolePage();
 registerDownloadCommandMessageListener();

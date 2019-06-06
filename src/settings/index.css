@@ -26,6 +26,8 @@ html, body {
 	border-bottom: 1px solid #DDD;
 }
 
+#main { transition: opacity 400ms ease; }
+
 #main .settings-group {
 	width: 90%;
 	max-width: 800px;
@@ -71,6 +73,13 @@ html, body {
 	border: 1px solid #aaa;
 	border-radius: 5px;
 }
+#main .settings-group .settings select[disabled],
+#main .settings-group .settings input[disabled],
+#main .settings-group .settings textarea[disabled] {
+	background: #eeeeee;
+	color: #888;
+}
+
 
 #main .settings-group .settings:hover h3 {
 	color: #2393E5;
@@ -98,4 +107,18 @@ html, body {
     background: #fff;
 	color: #2393E5;
 	border-color: #2393E5;
+}
+
+
+#notificationSave {
+	display: inline-block;
+    opacity: 0;
+	transition: opacity 400ms ease;
+
+	font-size: 20px;
+    background: #77D490;
+	color: #fff;
+
+    padding: 10px 24px;
+	margin: 0 5px;
 }

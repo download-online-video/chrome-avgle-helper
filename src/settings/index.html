@@ -15,12 +15,12 @@
 		<div id="header">
 			<h1>Avgle Helper Settings</h1>
 		</div>
-		<div id="main">
+		<div id="main" style="opacity: 0">
 			<div class="settings-group">
 				<h2>User Interface</h2>
 				<div class="settings">
 					<h3>Language</h3>
-					<select data-bind="language">
+					<select data-bind="language" disabled>
 						<option value="en">English</option>
 						<option value="zh-Hans">简体中文</option>
 						<option value="zh-Hant">繁體中文</option>
@@ -68,6 +68,7 @@
 
 			<div class="settings-group">
 				<button class="button" id="btnSave">Save</button>
+				<div id="notificationSave">Success: updated 1 setting!</div>
 			</div>
 		</div>
 	</div>
