@@ -48,7 +48,7 @@ import { ContextModules } from '../background/types';
 		const $error = $('#hasError');
 		$error.style.display = 'block';
 		$error.innerText = `${errors.length} internal error have occurred`;
-		$error.addEventListener('click', () => context.openConsolePage());
+		$error.addEventListener('click', () => modules.pages.openConsolePage());
 	}
 	function bindItemClickListener() {
 		$$('.menuOption').forEach(item => {
@@ -68,8 +68,8 @@ import { ContextModules } from '../background/types';
 		const itemId = this.getAttribute('data-id');
 		switch (itemId) {
 			case 'download': context.downloadVideoDownloaderScript(tabInfo); break;
-			case 'console': context.openConsolePage(); break;
-			case 'settings': context.openSettingsPage(); break;
+			case 'console': modules.pages.openConsolePage(); break;
+			case 'settings': modules.pages.openSettingsPage(); break;
 			default:
 		}
 	}
