@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-UPDATE_AT="2019-06-06";
+UPDATE_AT="2019-06-19";
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -14,6 +14,8 @@ if [[ "$CFG_USE_ENV_VARIABLES" != true ]]; then
 	CFG_MAX_CONCURRENT_DL='{{ CFG_MAX_CONCURRENT_DL }}';
 	CFG_USER_AGENT='{{ CFG_USER_AGENT }}';
 	CFG_PROXY='{{ CFG_PROXY }}';
+	CFG_DELETE_TMP_FILES='{{ CFG_DELETE_TMP_FILES }}';
+	CFG_DELETE_DOWNLOADER='{{ CFG_DELETE_DOWNLOADER }}';
 fi
 
 # Default config
@@ -28,11 +30,15 @@ DEFAULT_CFG_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/53
 [[ -n "$CFG_DECODE_M3U8" ]] || CFG_DECODE_M3U8="$DEFAULT_CFG_DECODE_M3U8";
 [[ -n "$CFG_MAX_CONCURRENT_DL" ]] || CFG_MAX_CONCURRENT_DL="$DEFAULT_CFG_MAX_CONCURRENT_DL";
 [[ -n "$CFG_USER_AGENT" ]] || CFG_USER_AGENT="$DEFAULT_CFG_USER_AGENT";
+[[ -n "$CFG_DELETE_TMP_FILES" ]] || CFG_DELETE_TMP_FILES=yes;
+[[ -n "$CFG_DELETE_DOWNLOADER" ]] || CFG_DELETE_DOWNLOADER=ask;
 
-# Check required variables
-function checkRequiredVariables() {
-	[[ -n "$CFG_M3U8_URL" ]] || error "variable \"CFG_M3U8_URL\" is missing!";
-	[[ -n "$CFG_VIDEO_NAME" ]] || error "variable \"CFG_VIDEO_NAME\" is missing!";
+# validate variables
+function validateVariables() {
+	[[ -n "$CFG_M3U8_URL" ]] || fatal "variable \"CFG_M3U8_URL\" is missing!";
+	[[ -n "$CFG_VIDEO_NAME" ]] || fatal "variable \"CFG_VIDEO_NAME\" is missing!";
+
+	isSupportedPageType "$CFG_PAGE_TYPE" || fatal "invalid type: \"${CFG_PAGE_TYPE}\" ";
 }
 
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -51,15 +57,12 @@ HTTP_REFERER_XVIDEOS="https://www.xvideos.com";
 # enable referer header by default, but it will be turn off (false) after download first file failed.
 ENABLE_REFERER=true
 
-# wget/aria2c binary file
+# wget, aria2c and ffmpeg binary files
 # it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
 WGET_BIN="wget";
 ARIA2C_BIN="aria2c";
-DOWNLOADER_TYPE="wget"; # or "aria2c"
-
-# ffmpeg binary file
-# it will be a path to a binary file in `windows-libs` directory if this script is running in git bash
 FFMPEG_BIN="ffmpeg";
+DOWNLOADER_TYPE="wget"; # or "aria2c"
 
 ARIA2C_OPT_J=""; # https://aria2.github.io/manual/en/html/aria2c.html#cmdoption-j
 
@@ -88,23 +91,48 @@ if isColorful; then
 	YELLOW="\x1b[0;33m"; YELLOW_BOLD="\x1b[1;33m";
 	GREEN="\x1b[0;32m";  GREEN_BOLD="\x1b[1;32m";
 	BLUE="\x1b[0;34m";   BLUE_BOLD="\x1b[1;34m";
-	GREY="\x1b[37m";     CYAN_BOLD="\x1b[1;36m";
+	CYAN="\x1b[0;36m";   CYAN_BOLD="\x1b[1;36m";
 fi
 
+function isYes() { [[ "$1" == y* ]] || [[ "$1" == Y* ]]; }
+function isNo() { [[ "$1" == n* ]] || [[ "$1" == N* ]]; }
+
+# usage confirm "question" "pre-chosen value"
 function confirm() {
+	if isYes "$2"; then return 0; fi
+	if isNo "$2"; then return 1; fi
+
 	local yn;
+	beginAsk "$1";
 	while read -p "Confirm (y/n) > " yn; do
-		if [[ "$yn" == y* ]] || [[ "$yn" == Y* ]]; then return 0; fi
-		if [[ "$yn" == n* ]] || [[ "$yn" == N* ]]; then return 1; fi
+		if isYes "$yn"; then endAsk; return 0; fi
+		if isNo "$yn"; then endAsk; return 1; fi
 	done
 }
 
-function title() { echo -e "${BLUE_BOLD}# ${1}${RESET}"; }
-function finish() { echo -e "\n${GREEN_BOLD}# Finish!${RESET}\n"; exit 0; }
-function userAbort() { echo -e "\n${YELLOW_BOLD}# Abort by user!${RESET}\n"; exit 0; }
-function warn() { echo -e "${YELLOW_BOLD}  Warning: ${1} ${RESET}"; }
-function success() { echo -e "${GREEN}  Success: ${1} ${RESET}"; }
-function error() { echo -e "${RED_BOLD}  Error:   ${RED}$1${RESET}\n"; exit 1; }
+function logStart() { echo -e "${BLUE_BOLD}>> start: ${BLUE}${1}${RESET}"; }
+function logInfo() { echo -e "${CYAN_BOLD}>> info:  ${CYAN}${1}${RESET}"; }
+function logWarn() { echo -e "${YELLOW_BOLD}>> warn:  ${YELLOW}${1}${RESET}"; }
+function logError() { echo -e "${RED_BOLD}>> error: ${RED}${1}${RESET}"; }
+function logOk() { echo -e "${GREEN_BOLD}>> ok:    ${GREEN}${1}${RESET}"; }
+function logBlank() { echo ''; }
+
+function fatal() { logError "$1"; exit 1; }
+function userCancel() {
+	echo -e "${RESET}\n${YELLOW_BOLD}>> exit:  ${YELLOW}cancel by user${RESET}";
+	exit 0;
+}
+
+function beginAsk() { echo -e "\n${BLUE_BOLD}>> ${BLUE}${1}"; }
+function endAsk() { printf "${RESET}"; }
+function beginDim() { printf "${DIM}"; }
+function endDim() { printf "${RESET}"; }
+
+function deleteIfItExists() {
+	if [[ -d "$1" ]]; then rm -r "$1" || fatal "can not delete ${2:-directory} ${1}";
+	elif [[ -e "$1" ]]; then rm "$1" || fatal "can not delete ${2:-file} ${1}";
+	fi
+}
 
 # ===========================
 # Windows User
@@ -130,7 +158,7 @@ function searchExec() {
 		if [[ -z "$searchExecResult" ]]; then
 			if [[ "$2" == required ]]; then
 				FIX_IT="(How to fix this error: read windows-libs/README.md)"
-				error "$1 is missng in directory \"windows-libs\". $FIX_IT";
+				fatal "$1 is missng in directory \"windows-libs\". $FIX_IT";
 			else
 				return 1;
 			fi
@@ -139,21 +167,21 @@ function searchExec() {
 	fi
 
 	if [[ "$2" == required ]]; then
-		error "\"$1\" is missing! (You can exec \"sudo apt install $3\" to fix it on Ubuntu)";
+		fatal "\"$1\" is missing! (You can exec \"sudo apt install $3\" to fix it on Ubuntu)";
 	else
 		return 1;
 	fi
 }
 
 function resolveDependencies() {
-	[[ -z `which gawk` ]] && error "\"gawk\" is missing! (Ubuntu: sudo apt install gawk)";
+	[[ -z `which gawk` ]] && fatal "\"gawk\" is missing! (Ubuntu: sudo apt install gawk)";
 
 	searchExec "$FFMPEG_BIN" required && FFMPEG_BIN="$searchExecResult";
 
 	if searchExec "$ARIA2C_BIN" optional; then
 		ARIA2C_BIN="$searchExecResult";
 		DOWNLOADER_TYPE="aria2c";
-		echo -e "${CYAN_BOLD}🚀  aria2 mode is enabled! 🚀${RESET}"
+		logInfo "aria2 mode is enabled! 🚀🚀"
 
 	elif searchExec "$WGET_BIN" required "$WGET_BIN"; then
 		WGET_BIN="$searchExecResult";
@@ -165,7 +193,7 @@ function printBanner() {
 	#=======================================================
 	# Banner color palette: #EF413F #FFB938 #3484EE #21A658
 	local C0 C1 C2 C3 C4 C5;
-	C0="$RESET"; C1="$RED"; C2="$YELLOW"; C3="$BLUE"; C4="$GREEN"; C5="$GREY"
+	C0="$RESET"; C1="$RED"; C2="$YELLOW"; C3="$BLUE"; C4="$GREEN"; C5="\x1b[37m"; # grey
 	if [[ -n "$C0" ]]; then
 		if [[ "$COLORTERM" = truecolor ]] || [[ "$COLORTERM" = 24bit ]]; then
 			C1="\x1b[38;2;239;65;63m";   C2="\x1b[38;2;255;185;56m";
@@ -262,11 +290,11 @@ function setupProxy() {
 	[[ -z "$CFG_PROXY" ]] && return;
 
 	local proxyURL="$(normalizeURL "$CFG_PROXY")";
-	[[ -z "$proxyURL" ]] && error "invalid proxy url: ${CFG_PROXY}";
+	[[ -z "$proxyURL" ]] && fatal "invalid proxy url: ${CFG_PROXY}";
 
 	export http_proxy="$proxyURL";
 	export https_proxy="$proxyURL";
-	success 'export `http_proxy` and `https_proxy` as '"$proxyURL";
+	logInfo 'export `http_proxy` and `https_proxy` as '"$proxyURL";
 }
 
 function cleanDownloadLogOnce() {
@@ -283,27 +311,41 @@ function downloadFailed() {
 	local msg="download $1 failed!";
 	if [[ -n "$2" ]]; then msg="${msg} $2";
 	elif [[ -f "$DOWNLOAD_LOG" ]]; then msg="${msg} (log file: $DOWNLOAD_LOG)"; fi
-	error "$msg";
+	fatal "$msg";
 }
 
 function _download() {
 	# declare `referer` as a local variable, because it should be reset after
 	#    "with_referer" to "no_referer"
-	local referer ref1 ref2 out1 out2;
+	local referer ref1 ref2 out1 out2 exitCode;
 	if [[ "$DOWNLOADER_TYPE" == aria2c ]]; then
 		cleanDownloadLogOnce;
 		[[ "$1" == with_referer ]] && referer="--referer=$HTTP_REFERER";
 
+		# default console log level: notice
+		beginDim;
 		generateDownloadListForAria2FromStdin "$3" <<< "$2" |
 			"$ARIA2C_BIN" "$referer" --user-agent="$CFG_USER_AGENT" \
+				--console-log-level=warn --log-level=debug \
+				--max-download-result="${CFG_MAX_CONCURRENT_DL}" \
+				--keep-unfinished-download-result=true \
+				--enable-color=false \
+				--summary-interval=120 \
 				--show-files --continue=true --input-file=- "$ARIA2C_OPT_J" \
 				--log="$DOWNLOAD_LOG" --log-level=info;
-		return $?;
+		exitCode=$?;
+		endDim;
+		return $exitCode;
 	fi
 	# wget
 	if [[ "$1" == with_referer ]]; then ref1="--header"; ref2="Referer: $HTTP_REFERER"; fi
 	if [[ -n "$3" ]]; then  out1="-O"; out2="$3"; fi
+
+	beginDim;
 	"$WGET_BIN" "$ref1" "$ref2" --header "User-Agent: $CFG_USER_AGENT" "$out1" "$out2" $2;
+	exitCode=$?;
+	endDim;
+	return $exitCode;
 }
 
 # Usage: betterDownloader <description> <urlArray> [targetFile]
@@ -321,7 +363,7 @@ function betterDownloader() {
 				# If download log was generated, but there no traces of 403. then just exit script
 				isLastDownload403 || downloadFailed "$1";
 			fi
-			warn "download with 'Referer' header failed! (trying to download again without 'Referer' header)";
+			logWarn "download with 'Referer' header failed! (trying to download again without 'Referer' header)";
 			ENABLE_REFERER=false;
 			_download no_referer "$2" "$3" || downloadFailed "$1";
 		fi
@@ -347,11 +389,11 @@ function deleteInvalidM3U8File() {
 	isValidM3U8 "$1";
 	if [[ $? == 0 ]]; then
 		isRandomIdInM3U8 "$1" && return;
-		warn "deleted outdated m3u8 file \"$1\" (without random id: $CFG_RANDOM_ID)";
+		logWarn "deleted outdated m3u8 file \"$1\" (without random id: $CFG_RANDOM_ID)";
 	else
-		warn "deleted invalid m3u8 file \"$1\" (without #EXTM3U or #EXT-X-ENDLIST)";
+		logWarn "deleted invalid m3u8 file \"$1\" (without #EXTM3U or #EXT-X-ENDLIST)";
 	fi
-	rm "$1" || error "could not delete invalid m3u8 file";
+	rm "$1" || fatal "could not delete invalid m3u8 file";
 }
 
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -376,37 +418,36 @@ function isSupportedPageType() {
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Main Function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-checkRequiredVariables;
+validateVariables;
 printBanner;
 setupProxy;
 resolveDependencies;
 
 ARIA2C_OPT_J="--max-concurrent-downloads=${CFG_MAX_CONCURRENT_DL}";
 
-isSupportedPageType "$CFG_PAGE_TYPE" || error "invalid type: \"${CFG_PAGE_TYPE}\" ";
+LOG_EXTRA="";
+[[ "$CFG_DECODE_M3U8" == true ]] && LOG_EXTRA="${LOG_EXTRA}decode ";
+[[ -n "$ARIA2C_OPT_J" ]] && LOG_EXTRA="${LOG_EXTRA}${ARIA2C_OPT_J} ";
+[[ -n "$CFG_PAGE_TYPE" ]] && LOG_EXTRA="${LOG_EXTRA}${CFG_PAGE_TYPE} ";
 
-echo -e "${GREY}Video name:${DIM} ${CFG_VIDEO_NAME}${RESET}";
-echo -e "${GREY}Video m3u8 URL:${DIM} ${CFG_M3U8_URL}${RESET}";
-
-printf "${GREY}Extra options:${DIM}";
-[[ "$CFG_DECODE_M3U8" == true ]] && printf " decode";
-[[ -n "$ARIA2C_OPT_J" ]] && printf " $ARIA2C_OPT_J";
-[[ -n "$CFG_PAGE_TYPE" ]] && printf " $CFG_PAGE_TYPE";
-printf "${RESET}\n";
+logInfo "video name: ${CFG_VIDEO_NAME}";
+logInfo "video m3u8: ${CFG_M3U8_URL}";
+logInfo "extra opts: ${LOG_EXTRA}";
+logBlank;
 
 # fix HTTP referer
 [[ "$CFG_PAGE_TYPE" == xvideos ]] && HTTP_REFERER="$HTTP_REFERER_XVIDEOS";
 
 TEMP_WORKSPACE=".tmp-${CFG_PAGE_TYPE}~${CFG_VIDEO_NAME}";
 if [[ ! -d "$TEMP_WORKSPACE" ]]; then
-	mkdir "$TEMP_WORKSPACE" || error "create temp workspace failed: $TEMP_WORKSPACE";
+	mkdir "$TEMP_WORKSPACE" || fatal "create temp workspace failed: $TEMP_WORKSPACE";
 fi
 
 M3U8_FILE="${CFG_VIDEO_NAME}.m3u8"
 deleteInvalidM3U8File "$M3U8_FILE";
 
 if [[ ! -f "${M3U8_FILE}" ]]; then
-	title "downloading m3u8 file ...";
+	logStart "downloading m3u8 file ...";
 
 	DOWNLOAD_TARGET_FILE="${M3U8_FILE}";
 	[[ "$CFG_DECODE_M3U8" == true ]] && DOWNLOAD_TARGET_FILE="${M3U8_FILE}.base64";
@@ -416,24 +457,24 @@ if [[ ! -f "${M3U8_FILE}" ]]; then
 	DOWNLOAD_LOG="${TEMP_WORKSPACE}/${OLD_DOWNLOAD_LOG}";
 
 	betterDownloader 'm3u8 file' "$CFG_M3U8_URL" "$DOWNLOAD_TARGET_FILE";
-	success "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
+	logOk "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
 
 	# restore log location
 	DOWNLOAD_LOG="${OLD_DOWNLOAD_LOG}";
 
 	if [[ "$CFG_DECODE_M3U8" == true ]]; then
-		title "decoding m3u8 file ...";
+		logStart "decoding m3u8 file ...";
 		base64 --decode "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE" ||
-			error "content of m3u8 is invalid base64!";
-		rm "$DOWNLOAD_TARGET_FILE" || warn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
-		success "decoded to $M3U8_FILE";
+			fatal "content of m3u8 is invalid base64!";
+		rm "$DOWNLOAD_TARGET_FILE" || logWarn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
+		logOk "decoded to $M3U8_FILE";
 	fi
 
 	# insert randomId
 	M3U8_CONTENT="$(insertRandomIdIntoM3U8 "$M3U8_FILE")";
 	echo "$M3U8_CONTENT" > "$M3U8_FILE" ||
-		error "insert random id \"$CFG_RANDOM_ID\" into $M3U8_FILE failed!";
-	success "inserted random id \"$CFG_RANDOM_ID\" into $M3U8_FILE"
+		fatal "insert random id \"$CFG_RANDOM_ID\" into $M3U8_FILE failed!";
+	logOk "inserted random id \"$CFG_RANDOM_ID\" into $M3U8_FILE"
 fi
 
 # get total file count:
@@ -465,16 +506,13 @@ else # avgle
 	FILE_NAME_SUFFIX="-v1-a1.ts";
 	DOWNLOAD_URL_PREFIX="${LAST_FRAGMENT_URL%/*}";
 fi
-echo -e "${GREY}Fragments info:${DIM}\
-    LastID(${LAST_FRAGMENT_ID})\
-	LastFile(${FILE_NAME_PREFIX}${LAST_FRAGMENT_ID}${FILE_NAME_SUFFIX})\
-    LastFragment(${LAST_FRAGMENT})${RESET}";
+logInfo "video fragments: lastId=${LAST_FRAGMENT_ID} prefix=${FILE_NAME_PREFIX} suffix=${FILE_NAME_SUFFIX} last=${LAST_FRAGMENT}";
 
-[[ -z "$LAST_FRAGMENT_ID" ]] && error "could not get last video fragment id from m3u8 file!";
+[[ -z "$LAST_FRAGMENT_ID" ]] && fatal "could not get last video fragment id from m3u8 file!";
 
 
-title "downloading missing files ...";
-pushd "$TEMP_WORKSPACE" || error "goto temp workspace failed: $TEMP_WORKSPACE";
+logStart "downloading missing files ...";
+pushd "$TEMP_WORKSPACE" || fatal "goto temp workspace failed: $TEMP_WORKSPACE";
 
 MISSING_FILE="";
 MISSING_FILE_COUNT=0;
@@ -485,8 +523,8 @@ for (( i=$FIRST_FRAGMENT_ID ; i<=$LAST_FRAGMENT_ID ; i++ )); do
 		if [[ ! -e "${DOWNLOAD_TO}.aria2" ]] || [[ "$DOWNLOADER_TYPE" != aria2c ]]; then
 			SIZE=$(stat --printf="%s" "${DOWNLOAD_TO}");
 			if [[ $SIZE -lt 10240 ]]; then # less than 10k (is broken or download failed)
-				rm "${DOWNLOAD_TO}" || error "could not delete broken file \"${DOWNLOAD_TO}\"";
-				warn "cleaned broken downloaded file: \"${DOWNLOAD_TO}\"";
+				rm "${DOWNLOAD_TO}" || fatal "could not delete broken file \"${DOWNLOAD_TO}\"";
+				logWarn "cleaned broken downloaded file: \"${DOWNLOAD_TO}\"";
 			else
 				continue;
 			fi
@@ -498,7 +536,7 @@ for (( i=$FIRST_FRAGMENT_ID ; i<=$LAST_FRAGMENT_ID ; i++ )); do
 done
 
 if [[ "$MISSING_FILE_COUNT" == "0" ]]; then
-	success "all files have been downloaded!";
+	logOk "all files have been downloaded!";
 else
 	generateBetterDownloadQueue "$MISSING_FILE" | while read range; do
 		P0="${DOWNLOAD_URL_PREFIX}/${FILE_NAME_PREFIX}";
@@ -506,12 +544,13 @@ else
 		DOWNLOAD_URL="$(eval "echo $range" |
 			gawk -vp0="$P0" -vp1="$P1" '{for(i=1;i<=NF;i++)printf("%s ",p0 $i p1);}')";
 
-		title "downloading ${range}/${LAST_FRAGMENT_ID} ...";
+		logStart "downloading ${range}/${LAST_FRAGMENT_ID} ...";
 		betterDownloader "\"${FILE_NAME_PREFIX}${range}${FILE_NAME_SUFFIX}\", please try again!" "$DOWNLOAD_URL";
-		success "progress ${range}/${LAST_FRAGMENT_ID}";
+		logOk "downloaded ${range}/${LAST_FRAGMENT_ID}";
+		logBlank;
 
 	done || exit 1;
-	success "all files are downloaded!";
+	logOk "all files are downloaded!";
 fi
 
 FFMPEG_LIST_FILE_CONTENT="";
@@ -521,22 +560,14 @@ for (( i=$FIRST_FRAGMENT_ID ; i<=$LAST_FRAGMENT_ID ; i++ )) do
 	FFMPEG_LIST_FILE_CONTENT="${FFMPEG_LIST_FILE_CONTENT}file ${FNAME}\n";
 done
 
-if [[ -e "$LIST_FILE" ]]; then
-	echo -e "\nList file ($LIST_FILE) is existed! Do you want to delete it and continue?";
-	confirm || userAbort;
-	rm -f $LIST_FILE || error "could not delete ${LIST_FILE}";
-fi
-echo -e "$FFMPEG_LIST_FILE_CONTENT" > "$LIST_FILE" || error "generate list file failed!";
-title "Concat file $LIST_FILE generated"
+deleteIfItExists "$LIST_FILE" "existed list file";
+echo -e "$FFMPEG_LIST_FILE_CONTENT" > "$LIST_FILE" || fatal "generate list file failed!";
+logOk "Concat file $LIST_FILE generated"
 
 # ===========================
 # Converting .ts file
-title "Converting ts file to mp4 files ..."
-if [[ -e "$TARGET_FILE" ]]; then
-	echo -e "\nTarget file is existed! do you want to delete and continue? ($TARGET_FILE)";
-	confirm || userAbort;
-	rm -f $TARGET_FILE || error "could not delete ${TARGET_FILE}";
-fi
+logStart "Converting ts file to mp4 files ..."
+deleteIfItExists "$TARGET_FILE" "existed target file";
 
 # -f concat can be performed in ffmpeg, reduce disk usage and time
 # -c copy is equal to -acodec copy -vcodec copy, we just don't want to re-encode the file
@@ -545,21 +576,32 @@ fi
 #   Convert MPEG-2/4 AAC ADTS to an MPEG-4 Audio Specific Configuration bitstream.
 #   Reference from repo: https://github.com/mywarr/chrome-avgle-helper
 "$FFMPEG_BIN" -f concat -i "${LIST_FILE}" -bsf:a aac_adtstoasc -c copy "${TARGET_FILE}" -loglevel error \
-	|| error "ffmpeg convert response exception!"
-title "Converted ${LIST_FILE} file to ${TARGET_FILE}";
+	|| fatal "ffmpeg convert response exception!"
+logOk "Converted ${LIST_FILE} file to ${TARGET_FILE}";
 
-popd >/dev/null || error "got back to parent directory failed!";
+popd >/dev/null || fatal "got back to parent directory failed!";
 
 # ===========================
 # Deleting files
-echo -e "\nDo you want to delete temp directory and m3u8 file ?";
-confirm || finish
+confirm "Do you want to delete temp directory and m3u8 file?" "$CFG_DELETE_TMP_FILES";
+if [[ "$?" == 0 ]]; then
+	logStart "Deleting temp directory ${TEMP_WORKSPACE} ...";
+	deleteIfItExists "${TEMP_WORKSPACE}";
+	logStart "Deleting m3u8 file ${M3U8_FILE} ..."
+	deleteIfItExists "${M3U8_FILE}";
+	logOk "All temporary files are deleted!"
+fi
 
-title "Deleting temp directory ${TEMP_WORKSPACE} ..."
-rm -r "${TEMP_WORKSPACE}" || error "delete failed!";
+SELF_FILE="${BASH_SOURCE[0]}";
+if [[ -n "$SELF_FILE" ]] && [[ -f "$SELF_FILE" ]]; then
+	confirm "Do you want to delete this downloader script?" "$CFG_DELETE_DOWNLOADER";
+	if [[ "$?" == 0 ]]; then
+		gawk '/\{\{/ && /\}\}/ {exit(1)}' "${SELF_FILE}" || fatal "can not delete template file!";
 
-title "Deleting m3u8 file ${M3U8_FILE} ..."
-rm "${M3U8_FILE}" || error "delete failed!";
-title "All temporary files are deleted!"
+		logStart "Deleting this downloader script ${SELF_FILE} ...";
+		deleteIfItExists "${SELF_FILE}";
+	fi
+fi
 
-finish
+logOk 'finished!';
+exit 0;
