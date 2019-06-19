@@ -22,12 +22,7 @@ exportToGloabl('__avgle_helper_context', {
 	downloadVideoDownloaderScript,
 
 	// export modules
-	modules: {
-		tabUtils,
-		settings,
-		log,
-		pages,
-	},
+	modules: { tabUtils, settings, log, pages },
 });
 
 const bashTemplate = new BashTemplate(chrome.extension.getURL('dist/downloader.sh'));
@@ -162,15 +157,18 @@ function downloadVideoDownloaderScript(tabInfo) {
 		return;
 
 	settings.storage.get().then(settingValues => {
+		console.log(settingValues);
 		const context = {
 			CFG_RANDOM_ID: uuid(),
 			CFG_VIDEO_NAME: tabInfo.carNumber,
 			CFG_M3U8_URL: tabInfo.m3u8URL,
 			CFG_DECODE_M3U8: tabInfo.needDecode ? 'true' : 'false',
 			CFG_PAGE_TYPE: tabInfo.pageType,
-			CFG_MAX_CONCURRENT_DL: 5,
+			CFG_MAX_CONCURRENT_DL: settingValues.concurrentDownloads || '5',
 			CFG_USER_AGENT: navigator.userAgent,
 			CFG_PROXY: settingValues.proxy || '',
+			CFG_DELETE_TMP_FILES: normalizeYesNoAsk(settingValues.deleteTempFiles),
+			CFG_DELETE_DOWNLOADER: normalizeYesNoAsk(settingValues.deleteDownloader),
 		};
 		compileAndDownload(context);
 	});
@@ -181,5 +179,10 @@ function downloadVideoDownloaderScript(tabInfo) {
 		const blob = new Blob([bash], { type: 'text/x-shellscript' });
 		const url = URL.createObjectURL(blob);
 		chrome.downloads.download({ url, saveAs: true, filename: fileName });
+	}
+	function normalizeYesNoAsk(value) {
+		if (/^(yes|true)$/i.test(value)) return 'yes';
+		if (/^(no|false)$/i.test(value)) return 'no';
+		return 'ask';
 	}
 }
