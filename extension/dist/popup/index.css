@@ -54,16 +54,34 @@ a {
 #header {
     padding: 15px;
     background: #777;
-    color: #fff;
+	color: #fff;
+	font-size: 1.2em;
 }
-
 #header.matched {
     background: #77b300;
 }
-
 #header a {
     color: #ffffff;
 }
+
+
+#notifications {
+	display: flex;
+	flex-direction: column;
+}
+#notifications > * {
+	padding: 8px 15px 8px 20px;
+	color: #fff;
+}
+#noVideoDetetced {
+    background: #888;
+}
+#hasError {
+	background: #F26A68;
+	cursor: pointer;
+}
+
+
 
 .group {
     padding: 10px 0;
@@ -78,7 +96,7 @@ a {
     font-size: 16px;
     white-space: nowrap;
     cursor: pointer;
-    padding: 0 15px;
+    padding: 0 15px 0 20px;
 }
 
 .menuOption:hover .optionText {
