@@ -8,23 +8,21 @@ import { uuid } from "./uuid";
 import * as tabUtils from "./tab-utils";
 import * as settings from "./settings-storage";
 import * as pages from "./open-pages";
-import * as log from "../logger";
+import * as log from "./logger";
 
 log.info('Chrome Avgle Helper background script started!');
 log.info(`Extension id: ${chrome.runtime.id}`);
 
-const { tabStorage } = tabUtils;
-
 // Export functions to global context used for invoking from popup page
-const exportToGloabl = (name, value) => global[name] = value;
-exportToGloabl('__avgle_helper_context', {
+global['__avgle_helper_context'] = {
 	queryTabStorage,
 	downloadVideoDownloaderScript,
 
 	// export modules
 	modules: { tabUtils, settings, log, pages },
-});
+};
 
+const { tabStorage } = tabUtils;
 const bashTemplate = new BashTemplate(chrome.extension.getURL('dist/downloader.sh'));
 const getBashTemplateUpdateAt = () => bashTemplate.matchString(/UPDATE_AT=['"](\S+)['"]/, 1);
 bashTemplate.init(() => log.info(`Loaded bash template (update at: ${getBashTemplateUpdateAt()})`));

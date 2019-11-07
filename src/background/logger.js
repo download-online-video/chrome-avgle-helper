@@ -1,5 +1,5 @@
 //@ts-check
-/// <reference path="./index.d.ts" />
+/// <reference path="../index.d.ts" />
 
 const MAX_HISTORY = 1000;
 const AVG_HISTORY = 700;

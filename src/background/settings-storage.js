@@ -8,7 +8,7 @@
 ///   MAX_WRITE_OPERATIONS_PER_HOUR: 1,800
 
 import * as os from "./os";
-import * as log from "../logger";
+import * as log from "./logger";
 
 export const settingDefaultValues = {
 	language: () => new Promise(resolve => os.getSystemInfo(info => resolve(info.defaultLanguage))),
