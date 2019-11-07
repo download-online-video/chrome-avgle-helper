@@ -96,6 +96,10 @@ function escapeHTML(text) {
  */
 function parseCarNumber(str = '') {
 	const matchers = [
+		// C2 Lab
+		[/C2[\s\-.]Lab.+(?:(\d+)[\s\-.])?([a-z]+)[\s\-.](\d+)/i, match =>
+			`C2Lab-${match[1] ? `${match[1]}-` : ''}${match[2]}-${match[3]}`],
+
 		// Tokyo hot
 		[/Tokyo[-\s]+Hot[-\s]+(\w{4,6})/i, match => `Tokyo-Hot-${match[1]}`],
 
