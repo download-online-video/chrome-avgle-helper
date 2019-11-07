@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-UPDATE_AT="2019-06-19";
+UPDATE_AT="2019-11-07";
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -463,11 +463,16 @@ if [[ ! -f "${M3U8_FILE}" ]]; then
 	DOWNLOAD_LOG="${OLD_DOWNLOAD_LOG}";
 
 	if [[ "$CFG_DECODE_M3U8" == true ]]; then
-		logStart "decoding m3u8 file ...";
-		base64 --decode "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE" ||
-			fatal "content of m3u8 is invalid base64!";
+		if isValidM3U8 "$DOWNLOAD_TARGET_FILE"; then
+			cat "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE";
+			logOk "skip decode the download content, because it is already a decoded m3u8 file";
+		else
+			logStart "decoding m3u8 file ...";
+			base64 --decode "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE" ||
+				fatal "content of m3u8 is invalid base64!";
+			logOk "decoded to $M3U8_FILE";
+		fi
 		rm "$DOWNLOAD_TARGET_FILE" || logWarn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
-		logOk "decoded to $M3U8_FILE";
 	fi
 
 	# insert randomId
