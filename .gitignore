@@ -1,3 +1,5 @@
+todo.md
+
 test/labs/*
 !test/labs/example.sh
 
@@ -8,6 +10,7 @@ tmp
 
 secret
 secret.*
+*.pri
 
 # sourcemaps
 *.map

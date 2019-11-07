@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @license Apache-2.0
- * 
+ *
  * frontend build scripts
  * version: 1.0.3-alpha
  * date: 2017-10-16 02:15
@@ -44,7 +44,7 @@ function J(a) {
 	b.sass.enable && (B = require('node-sass')),
 	b.less.enable && console.log('LESS is TODO...'),
 	b.autoprefixer.enable && (C = require('autoprefixer')),
-	b.babel.enable && (A = require('babel-core')),
+	b.babel.enable && (A = require('@babel/core')),
 	b.html_minifier.enable && (E = require('html-minifier')),
 	b.ejs.enable && (y = require('ejs')),
 	b.ejs_template_tags.enable && (D = require('cheerio')),
