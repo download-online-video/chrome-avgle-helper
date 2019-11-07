@@ -63,4 +63,4 @@ function replacer(matched, varName) {
 	return value.replace(/'/g, "'\\''");
 }
 
-function _() { }
+function noop() { }

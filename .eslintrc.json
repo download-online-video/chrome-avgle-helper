@@ -1,20 +1,26 @@
 {
-    "env": {
-        "browser": true,
-        "commonjs": true,
-        "es6": true,
-        "node": true
-    },
-    "globals": {
-        "chrome": true
-    },
-    "parser": "babel-eslint",
-    "parserOptions": {
-        "sourceType": "module"
-    },
-    "extends": "eslint:recommended",
-    "rules": {
-        "no-unused-vars": "warn",
-        "no-console": "off"
-    }
+	"env": {
+		"browser": true,
+		"commonjs": true,
+		"es6": true,
+		"node": true
+	},
+	"globals": {
+		"chrome": true
+	},
+	"parser": "babel-eslint",
+	"parserOptions": {
+		"sourceType": "module"
+	},
+	"extends": "eslint:recommended",
+	"rules": {
+		"no-unused-vars": [
+			"warn",
+			{
+				"varsIgnorePattern": "(?:noop)",
+				"args": "none"
+			}
+		],
+		"no-console": "off"
+	}
 }
