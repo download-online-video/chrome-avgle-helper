@@ -11,46 +11,53 @@ export function getInjectScript(paramters) {
 }
 
 /**
+ * This function will be invoked when a video m3u8 file be requested from the browser tab
+ *
  * @param {injectUtils} utils
  * @param {any} paramters
  */
 function main(utils, paramters = {}) {
+	console.log(`parameters=`, paramters)
 	const { $, el } = utils;
-	const injectBoxClassName = 'chrome-avgle-extension-inject-box';
-	const injectCarNumberClassName = 'chrome-avgle-extension-player-car-number';
+	const classes = {
+		commandBox: 'chrome-avgle-extension-inject-box',
+		videoNumberTag: 'chrome-avgle-extension-player-car-number',
+	};
 
 	/** @type {'avgle'|'xvideos'} */
 	const pageType = paramters.pageType;
 	const tabURL = String(paramters.tabURL || '');
 	const m3u8URLBase64 = String(paramters.m3u8URLBase64 || '');
 
-	let videoTitleDOM = $('.container .row .col-lg-12 h1');
+	const videoTitleDOM = $('.container .row .col-lg-12 h1');
 
 	let tipTitle = 'Download Commands:';
 	if (pageType === 'avgle') tipTitle = 'Avgle Download Commands:';
 	else if (pageType === 'xvideos') tipTitle = 'XVIDEOS Download Commands:';
 
 	let command = '';
-	let carNumber = getDefaultCarNumber();
+	let videoNumber = getDefaultCarNumber();
 	let downloaderOpts = [];
 
 	if (pageType === 'avgle') {
-		// add car number for main title
+		// add video number before main title
 		const node = Array.from(videoTitleDOM.childNodes).find(it => it.nodeType === Node.TEXT_NODE);
-		let videoTitle = node.textContent;
-		let _carNumber = utils.parseCarNumber(videoTitle);
-		if (_carNumber)
-			node.parentNode.insertBefore(createCarNumberElement(carNumber = _carNumber), node);
+		const videoTitle = node.textContent;
+		const _videoNumber = utils.parseCarNumber(videoTitle);
+		if (_videoNumber) {
+			videoNumber = _videoNumber;
+			node.parentNode.insertBefore(createCarNumberElement(videoNumber), node);
+		}
 	}
 
 	if (pageType === 'xvideos') downloaderOpts.push('type=xvideos');
 	if (paramters.needDecode) downloaderOpts.push('decode=true');
-	downloaderOpts.push(`name=${carNumber}`);
+	downloaderOpts.push(`name=${videoNumber}`);
 	downloaderOpts.push(`url=${m3u8URLBase64}`);
 
 	command = [
 		`AvgleDownloader ${downloaderOpts.join(' ')};`,
-		`Avgle ${carNumber}; # combine video files`
+		`Avgle ${videoNumber}; # combine video files`
 	].join('\n');
 
 	// make video component wider
@@ -59,7 +66,7 @@ function main(utils, paramters = {}) {
 		videoColumn.className = "col-lg-12 col-md-12 col-sm-12";
 	}
 
-	// inject download tip box
+	// inject download commands box
 	const injectContainer = getInjectContainer();
 	if (injectContainer) {
 		const injectBox = el('div',
@@ -68,7 +75,7 @@ function main(utils, paramters = {}) {
 				color: '#282828', backgroundColor: '#f7f7f7',
 				border: '1px solid #ccc', borderRadius: '4px',
 			},
-			{ class: injectBoxClassName },
+			{ class: classes.commandBox },
 			[
 				el('div',
 					{ padding: '5px 0 0 10px', fontSize: '15px', color: '#888' },
@@ -96,12 +103,14 @@ function main(utils, paramters = {}) {
 		injectContainer.appendChild(injectBox);
 	}
 
-	chrome.runtime.sendMessage({ carNumber });
+	// Send a message to extension backend. Tell it a video number be detected.
+	// So after this message is arrvied you can see the video number in the extension popup menu
+	chrome.runtime.sendMessage({ carNumber: videoNumber });
+	// Injection process be finished
+	return;
 
-	// End of injection process
-	// =======================================
+
 	//#region Helper function
-
 	function getInjectContainer() {
 		let injectContainer;
 		if (pageType === 'avgle') {
@@ -111,7 +120,7 @@ function main(utils, paramters = {}) {
 		}
 
 		if (injectContainer) {
-			const oldBox = $(`.${injectBoxClassName}`, injectContainer);
+			const oldBox = $(`.${classes.commandBox}`, injectContainer);
 			if (oldBox)
 				oldBox.parentNode.removeChild(oldBox);
 		}
@@ -131,7 +140,7 @@ function main(utils, paramters = {}) {
 	function createCarNumberElement(carNumber) {
 		return el('b',
 			{ color: '#77b300', margin: '0 0.5em', fontSize: '18px' },
-			{ class: injectCarNumberClassName },
+			{ class: classes.videoNumberTag },
 			carNumber);
 	}
 	//#endregion
