@@ -11,7 +11,9 @@ const utilsFunctions = {
 	$,
 	$$,
 	escapeHTML,
+	removeElement,
 	parseCarNumber,
+	buildVideoFullName,
 };
 export default utilsFunctions;
 
@@ -73,6 +75,15 @@ function $(selector, element) {
  */
 function $$(selector, element) {
 	return Array.from((element || document).querySelectorAll(selector) || []);
+}
+
+/**
+ * Remove a element if it is existed, do nothing if it is not existed
+ * @param {HTMLElement} element
+ */
+function removeElement(element) {
+	if (element && element.parentNode)
+		element.parentNode.removeChild(element);
 }
 
 /**
@@ -152,4 +163,33 @@ function parseCarNumber(str = '') {
 	}
 
 	return null;
+}
+
+/**
+ * @param {{videoNumber,episode}} input
+ * @param {string} [expression]
+ */
+function buildVideoFullName(input, expression = '${videoNumber}.ep${episode_123}') {
+	if (!input.episode) return input.videoNumber;
+	let ep = parseInt(input.episode, 10) || 1;
+	let epabc = '', epABC = '';
+	while (ep > 0) {
+		// A => 65,  a => 97,  97 - 65 = 32
+		const charCode = String.fromCharCode(65 - 1 + (ep % 26));
+		epABC = String.fromCharCode(charCode) + epABC;
+		epabc = String.fromCharCode(charCode + 32) + epabc;
+		ep = Math.floor(ep / 26);
+	}
+	return expression.replace(/\$\{\s*([\w-$]+)\s*\}/g, (_, varName) => {
+		let mtx = varName.match(/^ep(?:isode)?_?(123|abc)?/i);
+		if (mtx) {
+			const type = mtx[1];
+			if (!type || type === '123') return input.episode;
+			if (type === 'ABC') return epABC;
+			return epabc;
+		}
+		mtx = varName.match(/^(video_?|name|number)/i);
+		if (mtx) return input.videoNumber;
+		return varName;
+	});
 }

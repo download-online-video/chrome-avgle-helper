@@ -14,10 +14,10 @@ export function getInjectScript(paramters) {
  * This function will be invoked when a video m3u8 file be requested from the browser tab
  *
  * @param {injectUtils} utils
- * @param {any} paramters
+ * @param {any} parameters
  */
-function main(utils, paramters = {}) {
-	console.log(`parameters=`, paramters)
+function main(utils, parameters = {}) {
+	// console.log(`parameters=`, parameters)
 	const { $, el } = utils;
 	const classes = {
 		commandBox: 'chrome-avgle-extension-inject-box',
@@ -25,9 +25,9 @@ function main(utils, paramters = {}) {
 	};
 
 	/** @type {'avgle'|'xvideos'} */
-	const pageType = paramters.pageType;
-	const tabURL = String(paramters.tabURL || '');
-	const m3u8URLBase64 = String(paramters.m3u8URLBase64 || '');
+	const pageType = parameters.pageType;
+	const tabURL = String(parameters.tabURL || '');
+	const m3u8URLBase64 = String(parameters.m3u8URLBase64 || '');
 
 	const videoTitleDOM = $('.container .row .col-lg-12 h1');
 
@@ -39,21 +39,16 @@ function main(utils, paramters = {}) {
 	let videoNumber = getDefaultCarNumber();
 	let downloaderOpts = [];
 
-	if (pageType === 'avgle') {
-		// add video number before main title
-		const node = Array.from(videoTitleDOM.childNodes).find(it => it.nodeType === Node.TEXT_NODE);
-		const videoTitle = node.textContent;
-		const _videoNumber = utils.parseCarNumber(videoTitle);
-		if (_videoNumber) {
-			videoNumber = _videoNumber;
-			// Insert video number tag before video title
-			removeExistedElement($(`.${classes.videoNumberTag}`, node.parentNode));
-			node.parentNode.insertBefore(createCarNumberElement(videoNumber), node);
-		}
+	const info = getVideoInfo(pageType);
+	if (info && info.number) {
+		videoNumber = utils.buildVideoFullName({ videoNumber: info.number, episode: info.episode });
+		const { insertPoint } = info;
+		utils.removeElement($(`.${classes.videoNumberTag}`, insertPoint.parentNode));
+		insertPoint.parentNode.insertBefore(createCarNumberElement(videoNumber), insertPoint);
 	}
 
 	if (pageType === 'xvideos') downloaderOpts.push('type=xvideos');
-	if (paramters.needDecode) downloaderOpts.push('decode=true');
+	if (parameters.needDecode) downloaderOpts.push('decode=true');
 	downloaderOpts.push(`name=${videoNumber}`);
 	downloaderOpts.push(`url=${m3u8URLBase64}`);
 
@@ -122,7 +117,7 @@ function main(utils, paramters = {}) {
 		}
 
 		if (injectContainer)
-			removeExistedElement($(`.${classes.commandBox}`, injectContainer));
+			utils.removeElement($(`.${classes.commandBox}`, injectContainer));
 		return injectContainer;
 	}
 	function getDefaultCarNumber() {
@@ -138,16 +133,42 @@ function main(utils, paramters = {}) {
 	}
 	function createCarNumberElement(carNumber) {
 		return el('b',
-			{ color: '#77b300', margin: '0 0.5em', fontSize: '18px' },
-			{ class: classes.videoNumberTag },
-			carNumber);
+		{ color: '#77b300', margin: '0 0.5em', fontSize: '18px' },
+		{ class: classes.videoNumberTag },
+		carNumber);
 	}
+
 	/**
-	 * Remove a element if it is existed, do nothing if it is not existed
-	 * @param {HTMLElement} element
+	 * Get video info from title element
+	 * @param {'avgle'|'xvideos'} pageType
+	 * @returns {{title:string;number:string;episode:string;insertPoint:Node}}
 	 */
-	function removeExistedElement(element) {
-		if (element) element.parentNode.removeChild(element);
+	function getVideoInfo(pageType) {
+		if (!videoTitleDOM) return;
+		let title = '', episode = '', number = '', insertPoint, hasOtherEpisodes = false;
+		const nodes = Array.from(videoTitleDOM.childNodes);
+		for (let i = 0; i < nodes.length; i++) {
+			const node = nodes[i];
+			if (!title && node.nodeType === Node.TEXT_NODE) {
+				title = String(node.textContent || '').trim();
+				number = utils.parseCarNumber(title);
+				insertPoint = node;
+				const mtx = title.match(/^[\s\S]+-\s+(\d+)$/);
+				if (mtx && mtx[1]) episode = mtx[1];
+				continue;
+			}
+			// This node is HTML tag
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				// This node is a link tag and it is after title node.
+				// So means this video has more than one episode.
+				if (node.tagName === 'A' && title) {
+					hasOtherEpisodes = true;
+					continue;
+				}
+			}
+		}
+		if (!hasOtherEpisodes) episode = '';
+		return { title, number, episode, insertPoint };
 	}
 	//#endregion
 }
