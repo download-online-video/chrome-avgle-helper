@@ -1,14 +1,5 @@
 # CONTRIBUTING
 
-## Chrome extension
+Latest contributing document has been moved to [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
-``` bash
-# Install Node.js
-# Visit: https://nodejs.org/en/
-
-# Install dependencies
-npm install
-
-# Start builder
-npm run dev
-```
+最新的开发说明文档已经被移动到了 [docs/CONTRIBUTING.zh-Hans.md](docs/CONTRIBUTING.zh-Hans.md)
