@@ -46,6 +46,8 @@ function main(utils, paramters = {}) {
 		const _videoNumber = utils.parseCarNumber(videoTitle);
 		if (_videoNumber) {
 			videoNumber = _videoNumber;
+			// Insert video number tag before video title
+			removeExistedElement($(`.${classes.videoNumberTag}`, node.parentNode));
 			node.parentNode.insertBefore(createCarNumberElement(videoNumber), node);
 		}
 	}
@@ -119,11 +121,8 @@ function main(utils, paramters = {}) {
 			injectContainer = $('.video-metadata.video-tags-list');
 		}
 
-		if (injectContainer) {
-			const oldBox = $(`.${classes.commandBox}`, injectContainer);
-			if (oldBox)
-				oldBox.parentNode.removeChild(oldBox);
-		}
+		if (injectContainer)
+			removeExistedElement($(`.${classes.commandBox}`, injectContainer));
 		return injectContainer;
 	}
 	function getDefaultCarNumber() {
@@ -142,6 +141,13 @@ function main(utils, paramters = {}) {
 			{ color: '#77b300', margin: '0 0.5em', fontSize: '18px' },
 			{ class: classes.videoNumberTag },
 			carNumber);
+	}
+	/**
+	 * Remove a element if it is existed, do nothing if it is not existed
+	 * @param {HTMLElement} element
+	 */
+	function removeExistedElement(element) {
+		if (element) element.parentNode.removeChild(element);
 	}
 	//#endregion
 }
