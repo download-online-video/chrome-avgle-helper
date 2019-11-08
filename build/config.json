@@ -1,0 +1,14 @@
+{
+	"from": "src",
+	"watch": "src",
+	"dist": "extension/dist",
+	"entrypoints": [
+		"popup/index.*",
+		"settings/index.*",
+		"help/index.*",
+		"console/index.*",
+		"background/index.js",
+		"inject/main-normal-page.js",
+		"downloader.sh"
+	]
+}

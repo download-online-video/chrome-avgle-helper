@@ -6,6 +6,7 @@
 	"scripts": {
 		"start": "node ./build/build.js -w",
 		"build": "node ./build/build.js",
+		"dev": "node ./build/build.js -w",
 		"test": "npm run test:lint",
 		"test:lint": "eslint ."
 	},
@@ -43,8 +44,8 @@
 		"colors": "^1.4.0",
 		"eslint": "^6.6.0",
 		"fs-extra": "^8.1.0",
-		"js-yaml": "^3.13.1",
-		"postcss": "^7.0.21",
+		"glob": "^7.1.6",
+		"sass": "^1.23.3",
 		"watch": "^1.0.2",
 		"watchify": "^3.11.1"
 	}
