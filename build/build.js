@@ -99,7 +99,7 @@ async function main() {
 		}
 		log.start(`building ${stylesheeets.length} stylesheets`);
 		await Promise.all(stylesheeets.map(from => {
-			const to = path.join(targetDir, path.relative(sourceDir, from));
+			const to = path.join(targetDir, path.relative(sourceDir, from).replace(/\.(\w+)$/, '.css'));
 			const sourceMapTo = to + '.map';
 			const fromName = path.relative(process.cwd(), from);
 			const toName = path.relative(process.cwd(), to);
