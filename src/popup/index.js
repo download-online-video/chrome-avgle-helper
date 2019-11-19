@@ -69,6 +69,7 @@ import { ContextModules } from '../background/types';
 		switch (itemId) {
 			case 'download': context.downloadVideoDownloaderScript(tabInfo); break;
 			case 'console': modules.pages.openConsolePage(); break;
+			case 'help': modules.pages.openHelpPage(); break;
 			case 'settings': modules.pages.openSettingsPage(); break;
 			default:
 		}

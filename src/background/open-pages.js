@@ -8,10 +8,8 @@ export function openConsolePage() {
 		});
 }
 
-export function openSettingsPage() {
-	openExtensionInternalURI(`dist/settings/index.html`);
-	// chrome.tabs.create({ url: `chrome://extensions/?options=${chrome.runtime.id}` });
-}
+export function openSettingsPage() { openExtensionInternalURI(`dist/settings/index.html`); }
+export function openHelpPage() { openExtensionInternalURI(`dist/help/index.html`); }
 
 /**
  * @param {string} uri
@@ -19,6 +17,7 @@ export function openSettingsPage() {
  * @returns {Promise<chrome.tabs.Tab>}
  */
 export function openExtensionInternalURI(uri, options) {
+	// chrome.tabs.create({ url: `chrome://extensions/?options=${chrome.runtime.id}` });
 	const url = chrome.extension.getURL(uri);
 	return new Promise(resolve => {
 		chrome.tabs.query({ url }, tabs => {
