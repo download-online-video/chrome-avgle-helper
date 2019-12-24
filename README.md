@@ -4,11 +4,9 @@
 
 A Chrome extension for a free community  一个给司机用的Chrome插件
 
-## 🔊 3.x.x is being developed
+## ⚠️ Avgle has upgraded the algorithm
 
-Version `3.x.x` includes new extension's UI and better experience, but is is currently unstable and being developed.   
-You can switch branch to *3.x.x* if you want expericence it in advance.
-
+This extension is temporarily unavailable for Avgle.I will update this extension after few days later.
 
 ## Notice 注意
 
