@@ -1,0 +1,135 @@
+@import "../common/page.scss";
+
+#main {
+	.choose-os {
+		width: 90%;
+		max-width: 800px;
+		margin: 10px auto 60px auto;
+		padding: 0;
+
+		.choose-os-title {
+			color: $color-text;
+			font-size: 18px;
+		}
+		.os-items {
+			display: inline-flex;
+			flex-direction: row;
+			justify-content: flex-start;
+
+			.os {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				opacity: .5;
+				cursor: pointer;
+				user-select: none;
+				&.selected { opacity: 1;}
+				img {
+					margin: 10px;
+					height: 64px;
+				}
+				.title {
+
+				}
+			}
+			&:hover .os.selected { opacity: .5; }
+			&:hover .os:hover { opacity: .8; }
+		}
+	}
+	.settings-group {
+		width: 90%;
+		max-width: 800px;
+		margin: 10px auto 60px auto;
+		padding: 0 0 0 10px;
+
+		h2 {
+			color: $color-text;
+			font-size: 26px;
+			margin: 0 0 20px 0;
+			padding: 0;
+		}
+
+		.settings {
+			padding: 0;
+			margin: 0 0 20px 0;
+
+			h3 {
+				font-weight: normal;
+				color: #444;
+				font-size: 20px;
+				line-height: 1.8;
+				margin: 0 0 5px 0;
+				padding: 0;
+			}
+
+			select,
+			input,
+			textarea {
+				font-weight: normal;
+				color: #444;
+				background: #f8f8f8;
+
+				width: 300px;
+				font-size: 18px;
+				height: 40px;
+				margin: 0 0 5px 0;
+				padding: 4px 10px;
+
+				outline: none;
+				border: 1px solid #aaa;
+				border-radius: 5px;
+			}
+
+			select[disabled],
+			input[disabled],
+			textarea[disabled] {
+				background: #eeeeee;
+				color: #888;
+			}
+		} // .settings
+
+		.settings:hover {
+			h3 {
+				color: #2393e5;
+			}
+			select,
+			input,
+			textarea {
+				background: #eef7fd;
+
+				outline: none;
+				border-color: #80c1f0;
+			}
+		} // .settings:hover
+	} // .settings-group
+} // #main
+
+.button {
+	font-size: 20px;
+	padding: 10px 24px;
+	background: #2393e5;
+	border: 1px solid #eef7fd;
+	border-radius: 5px;
+	outline: none;
+	color: #fff;
+	cursor: pointer;
+}
+
+.button:hover {
+	background: #fff;
+	color: #2393e5;
+	border-color: #2393e5;
+}
+
+#notificationSave {
+	display: inline-block;
+	opacity: 0;
+	transition: opacity 400ms ease;
+
+	font-size: 20px;
+	background: #77d490;
+	color: #fff;
+
+	padding: 10px 24px;
+	margin: 0 5px;
+}
