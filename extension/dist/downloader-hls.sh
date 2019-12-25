@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
-UPDATE_AT="2019-12-25";
 
+UPDATE_AT="2019-12-25";
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Video Config >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 if [[ "$CFG_USE_ENV_VARIABLES" != true ]]; then
 	CFG_RANDOM_ID='{{ CFG_RANDOM_ID }}';
 	CFG_VIDEO_NAME='{{ CFG_VIDEO_NAME }}';
-	CFG_M3U8_URL='{{ CFG_M3U8_URL }}';
-	CFG_DECODE_M3U8='{{ CFG_DECODE_M3U8 }}';
 	CFG_PAGE_TYPE='{{ CFG_PAGE_TYPE }}';
 	CFG_MAX_CONCURRENT_DL='{{ CFG_MAX_CONCURRENT_DL }}';
 	CFG_USER_AGENT='{{ CFG_USER_AGENT }}';
+	CFG_REFERENCE='{{ CFG_REFERENCE }}';
 	CFG_PROXY='{{ CFG_PROXY }}';
 	CFG_DELETE_TMP_FILES='{{ CFG_DELETE_TMP_FILES }}';
 	CFG_DELETE_DOWNLOADER='{{ CFG_DELETE_DOWNLOADER }}';
+	CFG_SEGMENTS='{{ CFG_SEGMENTS }}';
+	CFG_SEGMENT_COUNT='{{ CFG_SEGMENT_COUNT }}'
 fi
 
 # Default config
-DEFAULT_CFG_DECODE_M3U8="false";
 DEFAULT_CFG_MAX_CONCURRENT_DL="5";
 # The idea why add user-agent header is from fork repository by [mywarr](https://github.com/mywarr)
 # And the following User-Agent is reference from: (Last Updated: Thu, 30 May 2019 09:33:12 +0000)
@@ -27,7 +27,6 @@ DEFAULT_CFG_MAX_CONCURRENT_DL="5";
 DEFAULT_CFG_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36";
 
 # Use default values if variables are unset
-[[ -n "$CFG_DECODE_M3U8" ]] || CFG_DECODE_M3U8="$DEFAULT_CFG_DECODE_M3U8";
 [[ -n "$CFG_MAX_CONCURRENT_DL" ]] || CFG_MAX_CONCURRENT_DL="$DEFAULT_CFG_MAX_CONCURRENT_DL";
 [[ -n "$CFG_USER_AGENT" ]] || CFG_USER_AGENT="$DEFAULT_CFG_USER_AGENT";
 [[ -n "$CFG_DELETE_TMP_FILES" ]] || CFG_DELETE_TMP_FILES=yes;
@@ -35,7 +34,7 @@ DEFAULT_CFG_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/53
 
 # validate variables
 function validateVariables() {
-	[[ -n "$CFG_M3U8_URL" ]] || fatal "variable \"CFG_M3U8_URL\" is missing!";
+	[[ -n "$CFG_SEGMENTS" ]] || fatal "variable \"CFG_SEGMENTS\" is missing!";
 	[[ -n "$CFG_VIDEO_NAME" ]] || fatal "variable \"CFG_VIDEO_NAME\" is missing!";
 
 	isSupportedPageType "$CFG_PAGE_TYPE" || fatal "invalid type: \"${CFG_PAGE_TYPE}\" ";
@@ -53,7 +52,6 @@ WINDOWS_LIBS_DIR="$HOME/bin";
 
 # Add this referer for fix forbidden download action on CDN
 HTTP_REFERER="https://avgle.com"
-HTTP_REFERER_XVIDEOS="https://www.xvideos.com";
 # enable referer header by default, but it will be turn off (false) after download first file failed.
 ENABLE_REFERER=true
 
@@ -72,7 +70,7 @@ SELF_LOG="avgle-downloader.log"
 LIST_FILE="concat.list"
 TARGET_FILE="../${CFG_VIDEO_NAME}.mp4"
 
-SUPPORTED_PAGE_TYPE=(avgle xvideos);
+SUPPORTED_PAGE_TYPE=(avgle todo);
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -214,13 +212,12 @@ function printBanner() {
 	echo -e ' '$C1'/_/   '$C2'\\__/  '$C3' \\__, |'$C4' |_|'$C1'  \\___| '$C5
 	echo -e '  '$C0'      '$C0'      '$C3'|___/   '$C4'    '$C1'         '$C0
 	echo -e ''
-	echo -e "${DIM} Updated date: ${UPDATE_AT}${RESET}"
+	echo -e "${DIM} Updated date:    ${UPDATE_AT}${RESET}"
+	echo -e "${DIM} Downloader type: for hls.js${RESET}"
 	echo -e ''
 }
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Generator Functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -378,30 +375,6 @@ function betterDownloader() {
 	fi
 }
 
-function isValidM3U8() {
-	# It must contain at least two parts: `#EXTM3U` and `#EXT-X-ENDLIST`
-	# c=or(c,1) is equals like c|=1 in c-language
-	gawk '/^#EXTM3U/{c=or(c,1)} /^#EXT-X-ENDLIST/{c=or(c,2)} END{exit(c==3?0:1)}' "$1";
-}
-function isRandomIdInM3U8() {
-	gawk -vrid="$CFG_RANDOM_ID" 'BEGIN{c=1}/^#EXT-X-RANDOM-ID/{c=index($0,rid)>0?0:1;}END{exit(c)}' "$1";
-}
-function insertRandomIdIntoM3U8() {
-	gawk -vrid="$CFG_RANDOM_ID" '{print}END{print("#EXT-X-RANDOM-ID:" rid)}' "$1";
-}
-function deleteInvalidM3U8File() {
-	[[ -f "$1" ]] || return;
-
-	isValidM3U8 "$1";
-	if [[ $? == 0 ]]; then
-		isRandomIdInM3U8 "$1" && return;
-		logWarn "deleted outdated m3u8 file \"$1\" (without random id: $CFG_RANDOM_ID)";
-	else
-		logWarn "deleted invalid m3u8 file \"$1\" (without #EXTM3U or #EXT-X-ENDLIST)";
-	fi
-	rm "$1" || fatal "could not delete invalid m3u8 file";
-}
-
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -432,81 +405,24 @@ resolveDependencies;
 ARIA2C_OPT_J="--max-concurrent-downloads=${CFG_MAX_CONCURRENT_DL}";
 
 LOG_EXTRA="";
-[[ "$CFG_DECODE_M3U8" == true ]] && LOG_EXTRA="${LOG_EXTRA}decode ";
 [[ -n "$ARIA2C_OPT_J" ]] && LOG_EXTRA="${LOG_EXTRA}${ARIA2C_OPT_J} ";
 [[ -n "$CFG_PAGE_TYPE" ]] && LOG_EXTRA="${LOG_EXTRA}${CFG_PAGE_TYPE} ";
 
-logInfo "video name: ${CFG_VIDEO_NAME}";
-logInfo "video m3u8: ${CFG_M3U8_URL}";
-logInfo "extra opts: ${LOG_EXTRA}";
+logInfo "video name:     ${CFG_VIDEO_NAME}";
+logInfo "segments count: ${CFG_SEGMENT_COUNT}";
+logInfo "extra opts:     ${LOG_EXTRA}";
 logBlank;
-
-# fix HTTP referer
-[[ "$CFG_PAGE_TYPE" == xvideos ]] && HTTP_REFERER="$HTTP_REFERER_XVIDEOS";
 
 TEMP_WORKSPACE=".tmp-${CFG_PAGE_TYPE}~${CFG_VIDEO_NAME}";
 if [[ ! -d "$TEMP_WORKSPACE" ]]; then
 	mkdir "$TEMP_WORKSPACE" || fatal "create temp workspace failed: $TEMP_WORKSPACE";
 fi
 
-M3U8_FILE="${CFG_VIDEO_NAME}.m3u8"
-deleteInvalidM3U8File "$M3U8_FILE";
-
-if [[ ! -f "${M3U8_FILE}" ]]; then
-	logStart "downloading m3u8 file ...";
-
-	DOWNLOAD_TARGET_FILE="${M3U8_FILE}";
-	[[ "$CFG_DECODE_M3U8" == true ]] && DOWNLOAD_TARGET_FILE="${M3U8_FILE}.base64";
-
-	# save log into temporary workspace
-	OLD_DOWNLOAD_LOG="${DOWNLOAD_LOG}";
-	DOWNLOAD_LOG="${TEMP_WORKSPACE}/${OLD_DOWNLOAD_LOG}";
-
-	betterDownloader 'm3u8 file' "$CFG_M3U8_URL" "$DOWNLOAD_TARGET_FILE";
-	logOk "downloaded m3u8 file to \"$DOWNLOAD_TARGET_FILE\"";
-
-	# restore log location
-	DOWNLOAD_LOG="${OLD_DOWNLOAD_LOG}";
-
-	if [[ "$CFG_DECODE_M3U8" == true ]]; then
-		if isValidM3U8 "$DOWNLOAD_TARGET_FILE"; then
-			cat "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE";
-			logOk "skip decode the download content, because it is already a decoded m3u8 file";
-		else
-			logStart "decoding m3u8 file ...";
-			base64 --decode "$DOWNLOAD_TARGET_FILE" > "$M3U8_FILE" ||
-				fatal "content of m3u8 is invalid base64!";
-			logOk "decoded to $M3U8_FILE";
-		fi
-		rm "$DOWNLOAD_TARGET_FILE" || logWarn "delete temporary file failed: $DOWNLOAD_TARGET_FILE";
-	fi
-
-	# insert randomId
-	M3U8_CONTENT="$(insertRandomIdIntoM3U8 "$M3U8_FILE")";
-	echo "$M3U8_CONTENT" > "$M3U8_FILE" ||
-		fatal "insert random id \"$CFG_RANDOM_ID\" into $M3U8_FILE failed!";
-	logOk "inserted random id \"$CFG_RANDOM_ID\" into $M3U8_FILE"
-fi
-
 # get total file count:
-function getLastVideoFragment() { cat "$M3U8_FILE" | gawk '!/^#/ {print $0}' | tail -n1; }
+function getLastVideoFragment() { echo "$CFG_SEGMENTS" | gawk '!/^[ \t]*$/ {print $0}' | tail -n1; }
 LAST_FRAGMENT_URL=`getLastVideoFragment`;
 
-if [[ "$CFG_PAGE_TYPE" == xvideos ]]; then
-	LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}"; # get base name of video file
-	LAST_FRAGMENT="${LAST_FRAGMENT%%\?*}"; # remove query string
-	LAST_FRAGMENT_ID="$(echo "$LAST_FRAGMENT" |
-		gawk '{if(match($0,/hls-[0-9]+p([0-9]+)/,r))print r[1];}')"
-
-	FIRST_FRAGMENT_ID=0;
-
-	FILE_NAME_PREFIX="${LAST_FRAGMENT%%p*}p";
-	FILE_NAME_SUFFIX=".ts";
-	DOWNLOAD_URL_PREFIX="${CFG_M3U8_URL%/*}";
-	DOWNLOAD_URL_SUFFIX="?${LAST_FRAGMENT_URL##*\?}";
-	# echo "$DOWNLOAD_URL_PREFIX" " <...> " "$DOWNLOAD_URL_SUFFIX";
-
-else # avgle
+if [[ "$CFG_PAGE_TYPE" == avgle ]]; then
 	LAST_FRAGMENT="${LAST_FRAGMENT_URL##*/}"; # get base name of video file
 	LAST_FRAGMENT_ID="${LAST_FRAGMENT##seg-}"; # remove prefix of file name
 	LAST_FRAGMENT_ID="${LAST_FRAGMENT_ID%%-*}"; # remove suffix
@@ -519,7 +435,7 @@ else # avgle
 fi
 logInfo "video fragments: lastId=${LAST_FRAGMENT_ID} prefix=${FILE_NAME_PREFIX} suffix=${FILE_NAME_SUFFIX} last=${LAST_FRAGMENT}";
 
-[[ -z "$LAST_FRAGMENT_ID" ]] && fatal "could not get last video fragment id from m3u8 file!";
+[[ -z "$LAST_FRAGMENT_ID" ]] && fatal "could not get last video fragment id from segment urls!";
 
 
 logStart "downloading missing files ...";
@@ -594,12 +510,10 @@ popd >/dev/null || fatal "got back to parent directory failed!";
 
 # ===========================
 # Deleting files
-confirm "Do you want to delete temp directory and m3u8 file?" "$CFG_DELETE_TMP_FILES";
+confirm "Do you want to delete temp directory?" "$CFG_DELETE_TMP_FILES";
 if [[ "$?" == 0 ]]; then
 	logStart "Deleting temp directory ${TEMP_WORKSPACE} ...";
 	deleteIfItExists "${TEMP_WORKSPACE}";
-	logStart "Deleting m3u8 file ${M3U8_FILE} ..."
-	deleteIfItExists "${M3U8_FILE}";
 	logOk "All temporary files are deleted!"
 fi
 
