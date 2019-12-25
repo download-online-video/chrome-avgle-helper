@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Avgle Helper",
-	"version": "3.0.0",
+	"version": "3.1.0",
 	"description": "A Chrome extension",
 	"background": {
 		"scripts": ["dist/background/index.js"],
@@ -21,6 +21,9 @@
 	}],
 	"icons": {
 		"128": "icons/128.png"
+	},
+	"externally_connectable": {
+		"matches": ["*://avgle.com/*"]
 	},
 	"permissions": [
 		"tabs",

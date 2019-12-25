@@ -2,8 +2,10 @@
 /// <reference path="../index.d.ts" />
 
 import { M3U8_PATTERN_ARRAY, VIDEO_PAGE_PATTERN, PROCESSABLE_M3U8_PATTERN } from "../config";
-import { getInjectScript } from "../inject/main-player-page";
+import { getInjectScript as getInjectScript4Original } from "../inject/main-player-page";
+import { getInjectScript as getInjectScript4Hls } from "../inject/main-player-page-hls";
 import { BashTemplate } from "./bash-template";
+import { getSecurityCode, testMessageSecurityCode } from "./message-security";
 import { uuid } from "./uuid";
 import * as tabUtils from "./tab-utils";
 import * as settings from "./settings-storage";
@@ -24,8 +26,11 @@ global['__avgle_helper_context'] = {
 
 const { tabStorage } = tabUtils;
 const bashTemplate = new BashTemplate(chrome.extension.getURL('dist/downloader.sh'));
-const getBashTemplateUpdateAt = () => bashTemplate.matchString(/UPDATE_AT=['"](\S+)['"]/, 1);
-bashTemplate.init(() => log.info(`Loaded bash template (update at: ${getBashTemplateUpdateAt()})`));
+const bashTemplate4hls = new BashTemplate(chrome.extension.getURL('dist/downloader-hls.sh'));
+
+const getBashTemplateUpdateAt = (tmpl) => tmpl.matchString(/UPDATE_AT=['"](\S+)['"]/, 1);
+bashTemplate.init(() => log.info(`Loaded bash template (update at: ${getBashTemplateUpdateAt(bashTemplate)})`));
+bashTemplate4hls.init(() => log.info(`Loaded bash template for hls.js (update at: ${getBashTemplateUpdateAt(bashTemplate4hls)})`));
 
 settings.storage.init();
 tabStorage.init();
@@ -69,7 +74,9 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 			m3u8URLBase64,
 			tabURL: tab.url,
 			pageType: matchedPage.type,
-			needDecode: matchedProcesser.base64Encoded
+			needDecode: matchedProcesser.base64Encoded,
+			extensionId: chrome.runtime.id,
+			security: getSecurityCode(),
 		};
 		tabStorage.update(tab.id, context);
 
@@ -84,9 +91,11 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 				parameters.error = error;
 			}
 
-			chrome.tabs.executeScript(details.tabId, {
-				code: getInjectScript(parameters)
-			}, () => { log.info('Inject script success!'); });
+			let code = '';
+			if (parameters.pageType === 'avgle') code = getInjectScript4Hls(parameters);
+			else code = getInjectScript4Original(parameters);
+
+			chrome.tabs.executeScript(details.tabId, { code }, () => { log.info('Inject script success!'); });
 		}
 	});
 
@@ -125,16 +134,42 @@ function registerLoggerConnectForConsolePage() {
 
 /**
  * Listen a message listener for receive download command from video page.
+ * @see https://developer.chrome.com/apps/messaging
  */
 function registerDownloadCommandMessageListener() {
 	chrome.runtime.onMessage.addListener((message, sender, response) => {
-		if (!message || !sender || !sender.tab || !sender.tab.id)
-			return;
-		const { tab } = sender;
-
-		log.info(`Video name: ${message.carNumber}`);
-		tabStorage.update(tab.id, { carNumber: message.carNumber });
+		if (!checkMessage(message, sender, false)) return;
+		onMessage(message, sender.tab.id);
 	});
+	chrome.runtime.onMessageExternal.addListener((message, sender, response) => {
+		if (!checkMessage(message, sender)) return console.error('Invalid message');
+		onMessage(message, sender.tab.id);
+	});
+
+	function checkMessage(message, sender, checkCode = true) {
+		if (!message || !sender || !sender.tab || !sender.tab.id)
+			return false;
+		if (checkCode && !testMessageSecurityCode(message.code))
+			return false;
+		return true;
+	}
+	function onMessage(message, tabId) {
+		if (message.log)
+			return log.info(message.log);
+		if (message.logError)
+			return log.error(message.logError);
+
+		if (message.carNumber) {
+			log.info(`Video name: ${message.carNumber}`);
+			tabStorage.update(tabId, { carNumber: message.carNumber, wait: message.wait });
+			return;
+		}
+		if (message.segments) {
+			log.info(`Segment Count: ${message.segments.length}`);
+			tabStorage.update(tabId, { segments: message.segments });
+			return;
+		}
+	}
 }
 
 function queryTabStorage(tabId) {
@@ -151,8 +186,17 @@ function setBrowserAction(detectedVideo) {
 function downloadVideoDownloaderScript(tabInfo) {
 	if (!tabInfo)
 		return;
-	if (['carNumber', 'm3u8URLBase64', 'pageType'].find(it => typeof tabInfo[it] === 'undefined'))
+	if (typeof tabInfo.carNumber === 'undefined')
 		return;
+
+	let downloaderType = 'normal';
+	if (typeof tabInfo.segments !== 'undefined') {
+		downloaderType = 'hls'
+	} else if (tabInfo.wait === 'segments') {
+		return alert(`Wait a moment, extension has not received video segments info.`);
+	} else if (['m3u8URLBase64', 'pageType'].find(it => typeof tabInfo[it] === 'undefined')) {
+		return;
+	}
 
 	settings.storage.get().then(settingValues => {
 		console.log(settingValues);
@@ -168,12 +212,18 @@ function downloadVideoDownloaderScript(tabInfo) {
 			CFG_DELETE_TMP_FILES: normalizeYesNoAsk(settingValues.deleteTempFiles),
 			CFG_DELETE_DOWNLOADER: normalizeYesNoAsk(settingValues.deleteDownloader),
 		};
+		if (downloaderType === 'hls') {
+			Object.assign(context, {
+				CFG_SEGMENTS: tabInfo.segments.join('\n'),
+				CFG_SEGMENT_COUNT: tabInfo.segments.length,
+			});
+		}
 		compileAndDownload(context);
 	});
 
 	function compileAndDownload(context) {
 		const fileName = `download-${tabInfo.carNumber}.sh`;
-		const bash = bashTemplate.compile(context);
+		const bash = (downloaderType === 'hls' ? bashTemplate4hls : bashTemplate).compile(context);
 		const blob = new Blob([bash], { type: 'text/x-shellscript' });
 		const url = URL.createObjectURL(blob);
 		chrome.downloads.download({ url, saveAs: true, filename: fileName });

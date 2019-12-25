@@ -22,8 +22,8 @@ export default utilsFunctions;
  * @param {string} globalVariableName
  * @returns {string}
  */
-function getInjectUtilsScript(globalVariableName) {
-	let result = `window.${globalVariableName} = {};`;
+function getInjectUtilsScript(globalVariableName, useWindowScope = true) {
+	let result = `${useWindowScope ? 'window.' : 'const '}${globalVariableName} = {};`;
 	result += Object.keys(utilsFunctions)
 		.filter(funcName => funcName !== 'getInjectUtilsScript')
 		.map(funcName => {

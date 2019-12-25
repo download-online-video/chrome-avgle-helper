@@ -9,6 +9,7 @@
 		"console/index.*",
 		"background/index.js",
 		"inject/main-normal-page.js",
-		"downloader.sh"
+		"downloader.sh",
+		"downloader-hls.sh"
 	]
 }
