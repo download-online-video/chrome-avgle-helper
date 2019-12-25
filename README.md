@@ -4,10 +4,6 @@
 
 A Chrome extension for a free community  一个给司机用的Chrome插件
 
-## ⚠️ Avgle has upgraded the algorithm
-
-This extension is temporarily unavailable for Avgle.I will update this extension after few days later.
-
 ## Notice 注意
 
 **This extension is for research and learning only. Do not use it for illegal purposes**   

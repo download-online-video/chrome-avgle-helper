@@ -1,6 +1,6 @@
 {
 	"name": "chrome-avgle-helper",
-	"version": "3.0.0",
+	"version": "3.1.0",
 	"description": "A Chrome extension for enhancing Avgle website",
 	"main": "src/index.js",
 	"scripts": {
@@ -19,6 +19,14 @@
 		{
 			"name": "vide0",
 			"email": "vide0-helper@gmx.com"
+		},
+		{
+			"name": "heroboy",
+			"email": "https://github.com/heroboy"
+		},
+		{
+			"name": "kimklai",
+			"url": "https://github.com/kimklai"
 		}
 	],
 	"repository": {
@@ -33,7 +41,7 @@
 		"extension"
 	],
 	"devDependencies": {
-		"@babel/core": "^7.7.2",
+		"@babel/core": "^7.7.7",
 		"@types/chrome": "0.0.91",
 		"@types/node": "^12.12.6",
 		"async": "^3.1.0",
@@ -42,10 +50,10 @@
 		"babelify": "^10.0.0",
 		"browserify": "^16.5.0",
 		"colors": "^1.4.0",
-		"eslint": "^6.6.0",
+		"eslint": "^6.8.0",
 		"fs-extra": "^8.1.0",
 		"glob": "^7.1.6",
-		"sass": "^1.23.3",
+		"sass": "^1.24.0",
 		"watch": "^1.0.2",
 		"watchify": "^3.11.1"
 	}

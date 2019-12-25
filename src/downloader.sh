@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-UPDATE_AT="2019-11-07";
+UPDATE_AT="2019-12-25";
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -164,6 +164,12 @@ function searchExec() {
 			fi
 		fi
 		return 0;
+	fi
+
+	local brewDir="/usr/local/Cellar";
+	if [[ "$1" == "$ARIA2C_BIN" ]] && [[ -d "$brewDir/aria2" ]]; then
+		searchExecResult="$(find "$brewDir/aria2" -type f -path '*/bin/*' -iname "$1" | head -n1)";
+		[[ -n "$searchExecResult" ]] && return 0 || return 1;
 	fi
 
 	if [[ "$2" == required ]]; then

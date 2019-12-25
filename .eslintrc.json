@@ -6,7 +6,8 @@
 		"node": true
 	},
 	"globals": {
-		"chrome": true
+		"chrome": true,
+		"videojs": true
 	},
 	"parser": "babel-eslint",
 	"parserOptions": {
