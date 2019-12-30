@@ -18,7 +18,7 @@ log.info(`Extension id: ${chrome.runtime.id}`);
 // Export functions to global context used for invoking from popup page
 global['__avgle_helper_context'] = {
 	queryTabStorage,
-	downloadVideoDownloaderScript,
+	downloadVideoFile,
 
 	// export modules
 	modules: { tabUtils, settings, log, pages },
@@ -58,14 +58,15 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 		log.info(`Tab title: ${tab.title}`);
 		log.info(`Tab URL: ${tab.url}`);
 
-		let matchedPage = VIDEO_PAGE_PATTERN.find(it => it.pattern.test(tab.url));
+		const matchedPage = VIDEO_PAGE_PATTERN.find(it => it.pattern.test(tab.url));
 		if (!matchedPage)
 			return log.info(`Ignore: URL of tab is not matched in VIDEO_PAGE_PATTERN`);
 
-		let m3u8URL = details.url;
-		let m3u8URLBase64 = btoa(m3u8URL);
+		const pageType = matchedPage.type;
+		const m3u8URL = details.url;
+		const m3u8URLBase64 = btoa(m3u8URL);
 
-		let matchedProcesser = PROCESSABLE_M3U8_PATTERN.find(it => it.pattern.test(m3u8URL));
+		const matchedProcesser = PROCESSABLE_M3U8_PATTERN.find(it => it.pattern.test(m3u8URL));
 		if (!matchedProcesser)
 			return log.info(`Ignore: URL of m3u8 request is not matched with any pattern in PROCESSABLE_M3U8_PATTERN`);
 
@@ -73,7 +74,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 			m3u8URL,
 			m3u8URLBase64,
 			tabURL: tab.url,
-			pageType: matchedPage.type,
+			pageType,
 			needDecode: matchedProcesser.base64Encoded,
 			extensionId: chrome.runtime.id,
 			security: getSecurityCode(),
@@ -183,7 +184,11 @@ function setBrowserAction(detectedVideo) {
 	});
 }
 
-function downloadVideoDownloaderScript(tabInfo) {
+/**
+ * @param {{ carNumber?:string; segments?:string[]; wait?:string; [x:string]: any; }} tabInfo
+ * @param {'downloader'|'segment-list'} [type]
+ */
+function downloadVideoFile(tabInfo, type = 'downloader') {
 	if (!tabInfo)
 		return;
 	if (typeof tabInfo.carNumber === 'undefined')
@@ -217,16 +222,25 @@ function downloadVideoDownloaderScript(tabInfo) {
 				CFG_SEGMENTS: tabInfo.segments.join('\n'),
 				CFG_SEGMENT_COUNT: tabInfo.segments.length,
 			});
+			if (type === 'segment-list')
+				return downloadList(context);
 		}
-		compileAndDownload(context);
+		if (type === 'downloader')
+			downloadDownloader(context);
 	});
 
-	function compileAndDownload(context) {
-		const fileName = `download-${tabInfo.carNumber}.sh`;
+	function downloadList(context) {
+		const filename = `list-${tabInfo.carNumber}.txt`;
+		const blob = new Blob([context.CFG_SEGMENTS], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+		chrome.downloads.download({ url, saveAs: true, filename });
+	}
+	function downloadDownloader(context) {
+		const filename = `download-${tabInfo.carNumber}.sh`;
 		const bash = (downloaderType === 'hls' ? bashTemplate4hls : bashTemplate).compile(context);
 		const blob = new Blob([bash], { type: 'text/x-shellscript' });
 		const url = URL.createObjectURL(blob);
-		chrome.downloads.download({ url, saveAs: true, filename: fileName });
+		chrome.downloads.download({ url, saveAs: true, filename });
 	}
 	function normalizeYesNoAsk(value) {
 		if (/^(yes|true)$/i.test(value)) return 'yes';

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-UPDATE_AT="2019-12-25";
+UPDATE_AT="2019-12-29";
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -132,6 +132,11 @@ function deleteIfItExists() {
 	if [[ -d "$1" ]]; then rm -r "$1" || fatal "can not delete ${2:-directory} ${1}";
 	elif [[ -e "$1" ]]; then rm "$1" || fatal "can not delete ${2:-file} ${1}";
 	fi
+}
+function readFileSize() {
+	local SIZE="$(stat --printf="%s" "$1" 2>/dev/null)";
+	[[ -z "$SIZE" ]] && SIZE="$(stat -f "%z" "$1")";
+	echo "$SIZE";
 }
 
 # ===========================
@@ -532,7 +537,7 @@ for (( i=$FIRST_FRAGMENT_ID ; i<=$LAST_FRAGMENT_ID ; i++ )); do
 	if [[ -e "${DOWNLOAD_TO}" ]]; then
 		# there has aria2 continue download mark file
 		if [[ ! -e "${DOWNLOAD_TO}.aria2" ]] || [[ "$DOWNLOADER_TYPE" != aria2c ]]; then
-			SIZE=$(stat --printf="%s" "${DOWNLOAD_TO}");
+			SIZE="$(readFileSize "${DOWNLOAD_TO}")";
 			if [[ $SIZE -lt 10240 ]]; then # less than 10k (is broken or download failed)
 				rm "${DOWNLOAD_TO}" || fatal "could not delete broken file \"${DOWNLOAD_TO}\"";
 				logWarn "cleaned broken downloaded file: \"${DOWNLOAD_TO}\"";

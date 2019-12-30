@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-UPDATE_AT="2019-12-29";
+UPDATE_AT="2019-12-30";
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Video Config >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -70,7 +70,7 @@ SELF_LOG="avgle-downloader.log"
 LIST_FILE="concat.list"
 TARGET_FILE="../${CFG_VIDEO_NAME}.mp4"
 
-SUPPORTED_PAGE_TYPE=(avgle todo);
+SUPPORTED_PAGE_TYPE=(avgle xvideos todo);
 # end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

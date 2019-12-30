@@ -67,7 +67,8 @@ import { ContextModules } from '../background/types';
 	function onClickItem(event) {
 		const itemId = this.getAttribute('data-id');
 		switch (itemId) {
-			case 'download': context.downloadVideoDownloaderScript(tabInfo); break;
+			case 'download': context.downloadVideoFile(tabInfo, 'downloader'); break;
+			case 'download-segment-list': context.downloadVideoFile(tabInfo, 'segment-list'); break;
 			case 'console': modules.pages.openConsolePage(); break;
 			case 'help': modules.pages.openHelpPage(); break;
 			case 'settings': modules.pages.openSettingsPage(); break;
