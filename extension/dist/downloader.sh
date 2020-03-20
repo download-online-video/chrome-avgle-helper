@@ -343,6 +343,7 @@ function _download() {
 				--enable-color=false \
 				--summary-interval=120 \
 				--show-files --continue=true --input-file=- "$ARIA2C_OPT_J" \
+				--check-certificate=false\
 				--log="$DOWNLOAD_LOG" --log-level=info;
 		exitCode=$?;
 		endDim;
