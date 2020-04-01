@@ -7,6 +7,7 @@ import { getInjectScript as getInjectScript4Hls } from "../inject/main-player-pa
 import { BashTemplate } from "./bash-template";
 import { getSecurityCode, testMessageSecurityCode } from "./message-security";
 import { uuid } from "./uuid";
+import { ContextModules} from "./types";
 import * as tabUtils from "./tab-utils";
 import * as settings from "./settings-storage";
 import * as pages from "./open-pages";
@@ -140,11 +141,11 @@ function registerLoggerConnectForConsolePage() {
 function registerDownloadCommandMessageListener() {
 	chrome.runtime.onMessage.addListener((message, sender, response) => {
 		if (!checkMessage(message, sender, false)) return;
-		onMessage(message, sender.tab.id);
+		onMessage(message, sender.tab);
 	});
 	chrome.runtime.onMessageExternal.addListener((message, sender, response) => {
 		if (!checkMessage(message, sender)) return console.error('Invalid message');
-		onMessage(message, sender.tab.id);
+		onMessage(message, sender.tab);
 	});
 
 	function checkMessage(message, sender, checkCode = true) {
@@ -154,7 +155,7 @@ function registerDownloadCommandMessageListener() {
 			return false;
 		return true;
 	}
-	function onMessage(message, tabId) {
+	function onMessage(message, tab) {
 		if (message.log)
 			return log.info(message.log);
 		if (message.logError)
@@ -162,12 +163,25 @@ function registerDownloadCommandMessageListener() {
 
 		if (message.carNumber) {
 			log.info(`Video name: ${message.carNumber}`);
-			tabStorage.update(tabId, { carNumber: message.carNumber, wait: message.wait });
+			tabStorage.update(tab.id, { carNumber: message.carNumber, wait: message.wait });
 			return;
 		}
 		if (message.segments) {
 			log.info(`Segment Count: ${message.segments.length}`);
-			tabStorage.update(tabId, { segments: message.segments });
+			tabStorage.update(tab.id, { segments: message.segments });
+
+			settings.storage.get().then(settingsValues => {
+				if(settingsValues.autoDownload === 'yes') {
+					const background = chrome.extension.getBackgroundPage();
+					const context = background && background.__avgle_helper_context;
+					if(!context) return;
+					let tabInfo = context.queryTabStorage(tab.id);
+
+					log.info('Starting autodownload');
+					downloadVideoFile(tabInfo);
+				}
+			});
+
 			return;
 		}
 	}
@@ -189,6 +203,10 @@ function setBrowserAction(detectedVideo) {
  * @param {'downloader'|'segment-list'} [type]
  */
 function downloadVideoFile(tabInfo, type = 'downloader') {
+	log.info('typeof carNumber' + typeof tabInfo.carNumber);
+	log.info('typeof segments' + typeof tabInfo.segments);
+	log.info('tabInfo.wait' + tabInfo.wait);
+
 	if (!tabInfo)
 		return;
 	if (typeof tabInfo.carNumber === 'undefined')
@@ -236,6 +254,7 @@ function downloadVideoFile(tabInfo, type = 'downloader') {
 		chrome.downloads.download({ url, saveAs: true, filename });
 	}
 	function downloadDownloader(context) {
+		log.info('Starting DL', context.CFG_VIDEO_NAME);
 		const filename = `download-${tabInfo.carNumber}.sh`;
 		const bash = (downloaderType === 'hls' ? bashTemplate4hls : bashTemplate).compile(context);
 		const blob = new Blob([bash], { type: 'text/x-shellscript' });
