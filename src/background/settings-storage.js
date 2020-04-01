@@ -15,6 +15,7 @@ export const settingDefaultValues = {
 	concurrentDownloads: '5',
 	deleteTempFiles: 'ask',
 	deleteDownloader: 'ask',
+	showDownloadDialog: 'yes',
 	proxy: '',
 };
 export const settingKeyNames = Object.keys(settingDefaultValues);
