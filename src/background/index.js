@@ -216,6 +216,7 @@ function downloadVideoFile(tabInfo, type = 'downloader') {
 			CFG_PROXY: settingValues.proxy || '',
 			CFG_DELETE_TMP_FILES: normalizeYesNoAsk(settingValues.deleteTempFiles),
 			CFG_DELETE_DOWNLOADER: normalizeYesNoAsk(settingValues.deleteDownloader),
+			CFG_SHOW_DOWNLOAD_DIALOG: settingValues.showDownloadDialog === 'yes',
 		};
 		if (downloaderType === 'hls') {
 			Object.assign(context, {
@@ -233,14 +234,14 @@ function downloadVideoFile(tabInfo, type = 'downloader') {
 		const filename = `list-${tabInfo.carNumber}.txt`;
 		const blob = new Blob([context.CFG_SEGMENTS], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
-		chrome.downloads.download({ url, saveAs: true, filename });
+		chrome.downloads.download({ url, saveAs: context.CFG_SHOW_DOWNLOAD_DIALOG, filename });
 	}
 	function downloadDownloader(context) {
 		const filename = `download-${tabInfo.carNumber}.sh`;
 		const bash = (downloaderType === 'hls' ? bashTemplate4hls : bashTemplate).compile(context);
 		const blob = new Blob([bash], { type: 'text/x-shellscript' });
 		const url = URL.createObjectURL(blob);
-		chrome.downloads.download({ url, saveAs: true, filename });
+		chrome.downloads.download({ url, saveAs: context.CFG_SHOW_DOWNLOAD_DIALOG, filename });
 	}
 	function normalizeYesNoAsk(value) {
 		if (/^(yes|true)$/i.test(value)) return 'yes';
