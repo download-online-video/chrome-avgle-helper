@@ -44,7 +44,7 @@
 		"@babel/core": "^7.7.7",
 		"@types/chrome": "0.0.91",
 		"@types/node": "^12.12.6",
-		"async": "^3.1.0",
+		"async": "^3.2.2",
 		"babel-eslint": "^10.0.3",
 		"babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
 		"babelify": "^10.0.0",
